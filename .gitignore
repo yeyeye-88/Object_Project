@@ -1,0 +1,17 @@
+# CMake build output
+/build/
+/out/
+
+# Compilers and debuggers
+*.exe
+*.dll
+*.o
+*.obj
+*.pdb
+
+# Editor and operating-system files
+.vs/
+.idea/
+.DS_Store
+Thumbs.db
+

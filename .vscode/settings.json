@@ -1,0 +1,8 @@
+{
+  "cmake.useCMakePresets": "always",
+  "cmake.configureOnOpen": false,
+  "cmake.configurePreset": "mingw-debug",
+  "cmake.buildPreset": "mingw-debug",
+  "cmake.testPreset": "mingw-debug"
+}
+

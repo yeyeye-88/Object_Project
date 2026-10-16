@@ -2,7 +2,7 @@
 
 一个由个人独立设计与开发的 C++ 塔防游戏项目。本项目参考《植物大战僵尸》的核心玩法，目标不只是满足课程实验的最低要求，而是完成一个结构清晰、玩法丰富、可以在 Visual Studio Code 中构建和运行的面向对象游戏。
 
-> 当前状态：需求规划与开发环境搭建阶段。本文中的功能分为“课程最低要求”和“扩展目标”，只有在完成并通过测试后才会标记为已实现。
+> 当前状态：M0 工程基础已完成，下一阶段为 M1 可交互草坪。本文中的功能分为“课程最低要求”和“扩展目标”，只有在完成并通过测试后才会标记为已实现。
 
 ## 一、项目目标
 
@@ -261,26 +261,33 @@ Object_Project/
 
 ## 八、构建与运行
 
-当前工程尚在初始化阶段，下面是计划采用的标准流程。M0 完成后将替换为经过实际验证的准确命令。
+工程使用 CMake Presets 统一管理配置、构建和测试。首次配置会从 SFML 官方仓库下载固定的 3.1.0 版本，因此需要连接网络；后续在依赖未变化时可以直接使用本地构建目录。
 
 ### 环境要求
 
 - Visual Studio Code；
 - VS Code 扩展：C/C++、CMake Tools；
-- CMake 3.28 或更高版本；
-- 支持 C++17 的编译器；
+- CMake 3.28 或更高版本（已使用 4.4.4 验证）；
+- 支持 C++17 的编译器（已使用 MinGW GCC 16.1.0 验证）；
 - Git。
 
-### 计划命令
+### 配置、构建与测试
 
 ```powershell
 git clone https://github.com/yeyeye-88/Object_Project.git
 cd Object_Project
-cmake -S . -B build
-cmake --build build
+cmake --preset mingw-debug
+cmake --build --preset mingw-debug --parallel 4
+ctest --preset mingw-debug
 ```
 
-可执行程序的准确位置将在 M0 完成并验证后补充。不要把未经验证的路径当作最终运行说明。
+### 运行
+
+```powershell
+.\build\debug\bin\pvz_game.exe
+```
+
+也可以在 VS Code 中选择 `MinGW Debug` 预设，使用 `Ctrl+Shift+B` 构建，然后按 `F5` 启动调试。当前 M0 程序会读取 `assets/config/window_title.txt`，打开一个 960×600 的窗口并绘制 5×9 草坪网格。
 
 ## 九、质量与验收标准
 
@@ -322,7 +329,7 @@ D:\Object\ObjectOriented_Lab\PvZ (2.1)\PvZ
 - [x] 明确课程题目与最低要求
 - [x] 建立 GitHub 仓库
 - [x] 制定完整功能规划
-- [ ] 完成 M0 工程基础
+- [x] 完成 M0 工程基础
 - [ ] 完成 M1 可交互草坪
 - [ ] 完成 M2 基础战斗闭环
 - [ ] 完成 M3 课程最低要求
