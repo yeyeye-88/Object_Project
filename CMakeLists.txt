@@ -30,12 +30,17 @@ FetchContent_MakeAvailable(SFML)
 
 add_library(object_project_core
     src/core/AppConfig.cpp
+    src/game/Board.cpp
+    src/game/CardSystem.cpp
+    src/game/GameSession.cpp
+    src/game/SunSystem.cpp
 )
 target_include_directories(object_project_core PUBLIC include)
 target_compile_features(object_project_core PUBLIC cxx_std_17)
 
 add_executable(pvz_game
     src/main.cpp
+    src/ui/GameScreen.cpp
 )
 target_link_libraries(pvz_game PRIVATE object_project_core SFML::Graphics)
 
@@ -57,17 +62,27 @@ add_custom_command(
 
 include(CTest)
 if(BUILD_TESTING)
-    add_executable(object_project_tests
+    add_executable(app_config_tests
         tests/AppConfigTests.cpp
     )
-    target_link_libraries(object_project_tests PRIVATE object_project_core)
+    add_executable(board_tests tests/BoardTests.cpp)
+    add_executable(card_system_tests tests/CardSystemTests.cpp)
+    add_executable(sun_system_tests tests/SunSystemTests.cpp)
+    add_executable(game_session_tests tests/GameSessionTests.cpp)
 
-    if(MSVC)
-        target_compile_options(object_project_tests PRIVATE /W4 /permissive-)
-    else()
-        target_compile_options(object_project_tests PRIVATE -Wall -Wextra -Wpedantic)
-    endif()
-
-    add_test(NAME app_config_tests COMMAND object_project_tests)
+    foreach(test_target IN ITEMS
+        app_config_tests
+        board_tests
+        card_system_tests
+        sun_system_tests
+        game_session_tests
+    )
+        target_link_libraries(${test_target} PRIVATE object_project_core)
+        if(MSVC)
+            target_compile_options(${test_target} PRIVATE /W4 /permissive-)
+        else()
+            target_compile_options(${test_target} PRIVATE -Wall -Wextra -Wpedantic)
+        endif()
+        add_test(NAME ${test_target} COMMAND ${test_target})
+    endforeach()
 endif()
-
