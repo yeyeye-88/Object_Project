@@ -32,8 +32,12 @@ add_library(object_project_core
     src/core/AppConfig.cpp
     src/game/Board.cpp
     src/game/CardSystem.cpp
+    src/game/CombatSystem.cpp
     src/game/GameSession.cpp
+    src/game/LevelSystem.cpp
+    src/game/Plant.cpp
     src/game/SunSystem.cpp
+    src/game/Zombie.cpp
 )
 target_include_directories(object_project_core PUBLIC include)
 target_compile_features(object_project_core PUBLIC cxx_std_17)
@@ -69,6 +73,9 @@ if(BUILD_TESTING)
     add_executable(card_system_tests tests/CardSystemTests.cpp)
     add_executable(sun_system_tests tests/SunSystemTests.cpp)
     add_executable(game_session_tests tests/GameSessionTests.cpp)
+    add_executable(plant_tests tests/PlantTests.cpp)
+    add_executable(level_system_tests tests/LevelSystemTests.cpp)
+    add_executable(combat_system_tests tests/CombatSystemTests.cpp)
 
     foreach(test_target IN ITEMS
         app_config_tests
@@ -76,6 +83,9 @@ if(BUILD_TESTING)
         card_system_tests
         sun_system_tests
         game_session_tests
+        plant_tests
+        level_system_tests
+        combat_system_tests
     )
         target_link_libraries(${test_target} PRIVATE object_project_core)
         if(MSVC)

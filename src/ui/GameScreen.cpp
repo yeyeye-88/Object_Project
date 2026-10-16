@@ -10,8 +10,8 @@ namespace object_project {
 
 namespace {
 
-bool contains(const sf::FloatRect& rectangle, const sf::Vector2i position) {
-    return rectangle.contains({static_cast<float>(position.x), static_cast<float>(position.y)});
+bool contains(const sf::FloatRect& rectangle, const sf::Vector2f position) {
+    return rectangle.contains(position);
 }
 
 void drawButton(
@@ -87,7 +87,10 @@ sf::Color GameScreen::plantColor(const PlantType type, const std::uint8_t alpha)
     return {220, 220, 220, alpha};
 }
 
-void GameScreen::handleEvent(const sf::Event& event) {
+void GameScreen::handleEvent(
+    const sf::Event& event,
+    const sf::RenderWindow& window
+) {
     if (const auto* key = event.getIf<sf::Event::KeyPressed>()) {
         if (key->scancode == sf::Keyboard::Scancode::Escape) {
             session_.togglePause();
@@ -100,9 +103,10 @@ void GameScreen::handleEvent(const sf::Event& event) {
     }
 
     if (const auto* move = event.getIf<sf::Event::MouseMoved>()) {
+        const sf::Vector2f worldPosition = window.mapPixelToCoords(move->position);
         hoveredCell_ = BoardGeometry::gridAt(
-            static_cast<float>(move->position.x),
-            static_cast<float>(move->position.y)
+            worldPosition.x,
+            worldPosition.y
         );
         return;
     }
@@ -112,12 +116,12 @@ void GameScreen::handleEvent(const sf::Event& event) {
             selectedPlant_.reset();
             shovelSelected_ = false;
         } else if (click->button == sf::Mouse::Button::Left) {
-            handleLeftClick(click->position);
+            handleLeftClick(window.mapPixelToCoords(click->position));
         }
     }
 }
 
-void GameScreen::handleLeftClick(const sf::Vector2i position) {
+void GameScreen::handleLeftClick(const sf::Vector2f position) {
     if (contains(pauseBounds, position)) {
         session_.togglePause();
         return;
@@ -127,6 +131,15 @@ void GameScreen::handleLeftClick(const sf::Vector2i position) {
         if (contains(resumeBounds, position)) {
             session_.togglePause();
         } else if (contains(restartBounds, position)) {
+            session_.restart();
+            selectedPlant_.reset();
+            shovelSelected_ = false;
+        }
+        return;
+    }
+
+    if (session_.state() == GameState::Won || session_.state() == GameState::Lost) {
+        if (contains(restartBounds, position)) {
             session_.restart();
             selectedPlant_.reset();
             shovelSelected_ = false;
@@ -155,8 +168,8 @@ void GameScreen::handleLeftClick(const sf::Vector2i position) {
     }
 
     const auto cell = BoardGeometry::gridAt(
-        static_cast<float>(position.x),
-        static_cast<float>(position.y)
+        position.x,
+        position.y
     );
     if (!cell) {
         return;
@@ -177,11 +190,14 @@ void GameScreen::handleLeftClick(const sf::Vector2i position) {
 void GameScreen::draw(sf::RenderWindow& window) const {
     drawBackground(window);
     drawBoard(window);
+    drawCombat(window);
     drawSuns(window);
     drawCards(window);
     drawToolbar(window);
     if (session_.isPaused()) {
         drawPauseOverlay(window);
+    } else if (session_.state() == GameState::Won || session_.state() == GameState::Lost) {
+        drawResultOverlay(window);
     }
 }
 
@@ -201,8 +217,16 @@ void GameScreen::drawBoard(sf::RenderWindow& window) const {
     for (int row = 0; row < BoardGeometry::rows; ++row) {
         for (int column = 0; column < BoardGeometry::columns; ++column) {
             const GridPosition position{row, column};
-            if (const auto plant = session_.board().plantAt(position)) {
-                drawPlant(window, *plant, position, false);
+            if (const Plant* plant = session_.board().plantAt(position)) {
+                drawPlant(window, plant->type(), position, false);
+                drawHealthBar(
+                    window,
+                    static_cast<float>(plant->health()) /
+                        static_cast<float>(plant->maxHealth()),
+                    {BoardGeometry::cellLeft(column) + 10.0F,
+                     BoardGeometry::cellTop(row) + BoardGeometry::cellHeight - 10.0F},
+                    BoardGeometry::cellWidth - 20.0F
+                );
             }
         }
     }
@@ -228,6 +252,57 @@ void GameScreen::drawBoard(sf::RenderWindow& window) const {
     highlight.setOutlineColor(allowed ? sf::Color(190, 255, 190) : sf::Color(255, 150, 150));
     highlight.setOutlineThickness(2.0F);
     window.draw(highlight);
+}
+
+void GameScreen::drawCombat(sf::RenderWindow& window) const {
+    for (const LawnMower& mower : session_.combat().mowers()) {
+        if (mower.state == LawnMowerState::Used) {
+            continue;
+        }
+        sf::RectangleShape body({48.0F, 34.0F});
+        body.setPosition({mower.x, BoardGeometry::cellTop(mower.row) + 54.0F});
+        body.setFillColor({202, 48, 42});
+        body.setOutlineColor({88, 25, 23});
+        body.setOutlineThickness(2.0F);
+        window.draw(body);
+        for (const float offset : {5.0F, 31.0F}) {
+            sf::CircleShape wheel(7.0F);
+            wheel.setPosition({mower.x + offset, BoardGeometry::cellTop(mower.row) + 80.0F});
+            wheel.setFillColor({45, 45, 45});
+            window.draw(wheel);
+        }
+    }
+
+    for (const Projectile& projectile : session_.combat().projectiles()) {
+        sf::CircleShape pea(7.0F);
+        pea.setPosition({projectile.x, BoardGeometry::cellTop(projectile.row) + 39.0F});
+        pea.setFillColor({92, 220, 65});
+        pea.setOutlineColor({35, 105, 28});
+        pea.setOutlineThickness(2.0F);
+        window.draw(pea);
+    }
+
+    for (const auto& zombie : session_.combat().zombies()) {
+        const float top = BoardGeometry::cellTop(zombie->row()) + 10.0F;
+        sf::RectangleShape body({CombatSystem::zombieWidth, 80.0F});
+        body.setPosition({zombie->x(), top});
+        body.setFillColor({105, 125, 91});
+        body.setOutlineColor({48, 61, 42});
+        body.setOutlineThickness(3.0F);
+        window.draw(body);
+
+        sf::CircleShape head(17.0F);
+        head.setPosition({zombie->x() + 7.0F, top - 8.0F});
+        head.setFillColor({150, 165, 130});
+        window.draw(head);
+        drawHealthBar(
+            window,
+            static_cast<float>(zombie->health()) /
+                static_cast<float>(zombie->maxHealth()),
+            {zombie->x(), top - 14.0F},
+            CombatSystem::zombieWidth
+        );
+    }
 }
 
 void GameScreen::drawPlant(
@@ -392,6 +467,60 @@ void GameScreen::drawPauseOverlay(sf::RenderWindow& window) const {
     arrow.setPoint(2, {538.0F, 290.0F});
     arrow.setFillColor(sf::Color::White);
     window.draw(arrow);
+}
+
+void GameScreen::drawResultOverlay(sf::RenderWindow& window) const {
+    const bool won = session_.state() == GameState::Won;
+    sf::RectangleShape shade({960.0F, 600.0F});
+    shade.setFillColor(won ? sf::Color(18, 75, 32, 190) : sf::Color(85, 20, 18, 195));
+    window.draw(shade);
+
+    if (won) {
+        sf::RectangleShape first({18.0F, 65.0F});
+        first.setPosition({405.0F, 180.0F});
+        first.setRotation(sf::degrees(-42.0F));
+        first.setFillColor({245, 240, 150});
+        window.draw(first);
+        sf::RectangleShape second({18.0F, 115.0F});
+        second.setPosition({452.0F, 228.0F});
+        second.setRotation(sf::degrees(-135.0F));
+        second.setFillColor({245, 240, 150});
+        window.draw(second);
+    } else {
+        for (const float angle : {45.0F, -45.0F}) {
+            sf::RectangleShape bar({20.0F, 120.0F});
+            bar.setPosition({474.0F, 175.0F});
+            bar.setOrigin({10.0F, 60.0F});
+            bar.setRotation(sf::degrees(angle));
+            bar.setFillColor({255, 210, 170});
+            window.draw(bar);
+        }
+    }
+
+    drawButton(window, restartBounds, won ? sf::Color(62, 128, 67, 245) : sf::Color(133, 91, 46, 245));
+    sf::CircleShape restart(17.0F, 28);
+    restart.setPosition({528.0F, 273.0F});
+    restart.setFillColor(sf::Color::Transparent);
+    restart.setOutlineColor(sf::Color::White);
+    restart.setOutlineThickness(5.0F);
+    window.draw(restart);
+}
+
+void GameScreen::drawHealthBar(
+    sf::RenderWindow& window,
+    const float ratio,
+    const sf::Vector2f position,
+    const float width
+) const {
+    sf::RectangleShape background({width, 5.0F});
+    background.setPosition(position);
+    background.setFillColor({55, 25, 22, 210});
+    window.draw(background);
+
+    sf::RectangleShape health({width * std::clamp(ratio, 0.0F, 1.0F), 5.0F});
+    health.setPosition(position);
+    health.setFillColor(ratio > 0.35F ? sf::Color(80, 210, 70) : sf::Color(230, 65, 45));
+    window.draw(health);
 }
 
 void GameScreen::drawNumber(

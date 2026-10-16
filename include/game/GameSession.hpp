@@ -2,6 +2,8 @@
 
 #include "game/Board.hpp"
 #include "game/CardSystem.hpp"
+#include "game/CombatSystem.hpp"
+#include "game/LevelSystem.hpp"
 #include "game/SunSystem.hpp"
 
 namespace object_project {
@@ -9,6 +11,8 @@ namespace object_project {
 enum class GameState {
     Running,
     Paused,
+    Won,
+    Lost,
 };
 
 enum class PlacementResult {
@@ -18,6 +22,7 @@ enum class PlacementResult {
     Occupied,
     NotEnoughSun,
     CardCoolingDown,
+    GameOver,
 };
 
 class GameSession {
@@ -39,6 +44,9 @@ public:
     const Board& board() const { return board_; }
     const CardSystem& cards() const { return cards_; }
     const SunSystem& suns() const { return suns_; }
+    const CombatSystem& combat() const { return combat_; }
+    CombatSystem& combat() { return combat_; }
+    const LevelSystem& level() const { return level_; }
 
 private:
     GameState state_{GameState::Running};
@@ -46,6 +54,8 @@ private:
     Board board_;
     CardSystem cards_;
     SunSystem suns_;
+    CombatSystem combat_;
+    LevelSystem level_;
 };
 
 }  // namespace object_project

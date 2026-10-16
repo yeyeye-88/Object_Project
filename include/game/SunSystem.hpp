@@ -28,6 +28,7 @@ public:
 
     void update(float deltaSeconds);
     bool collectAt(float x, float y);
+    void spawnFromPlant(GridPosition position);
     void reset();
 
     const std::vector<SunToken>& tokens() const { return tokens_; }

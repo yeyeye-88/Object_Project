@@ -53,6 +53,14 @@ bool SunSystem::collectAt(const float x, const float y) {
     return true;
 }
 
+void SunSystem::spawnFromPlant(const GridPosition position) {
+    const float x = BoardGeometry::cellLeft(position.column) +
+                    (BoardGeometry::cellWidth - tokenSize) / 2.0F;
+    const float y = BoardGeometry::cellTop(position.row) +
+                    (BoardGeometry::cellHeight - tokenSize) / 2.0F;
+    tokens_.push_back({nextId_++, x, y, y, 0.0F});
+}
+
 void SunSystem::reset() {
     random_.seed(initialSeed_);
     tokens_.clear();

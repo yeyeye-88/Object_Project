@@ -1,9 +1,11 @@
 #pragma once
 
 #include "game/BoardGeometry.hpp"
+#include "game/Plant.hpp"
 #include "game/PlantType.hpp"
 
 #include <array>
+#include <memory>
 #include <optional>
 
 namespace object_project {
@@ -13,7 +15,9 @@ public:
     bool place(GridPosition position, PlantType type);
     bool remove(GridPosition position);
     bool isOccupied(GridPosition position) const;
-    std::optional<PlantType> plantAt(GridPosition position) const;
+    Plant* plantAt(GridPosition position);
+    const Plant* plantAt(GridPosition position) const;
+    void removeDeadPlants();
     void reset();
 
 private:
@@ -22,7 +26,7 @@ private:
 
     static std::size_t indexOf(GridPosition position);
 
-    std::array<std::optional<PlantType>, cellCount> cells_{};
+    std::array<std::unique_ptr<Plant>, cellCount> cells_{};
 };
 
 }  // namespace object_project

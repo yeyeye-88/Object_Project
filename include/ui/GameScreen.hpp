@@ -14,7 +14,7 @@ class GameScreen {
 public:
     explicit GameScreen(GameSession& session);
 
-    void handleEvent(const sf::Event& event);
+    void handleEvent(const sf::Event& event, const sf::RenderWindow& window);
     void draw(sf::RenderWindow& window) const;
 
 private:
@@ -32,14 +32,17 @@ private:
     static const std::array<CardLayout, plantTypeCount>& cardLayouts();
     static sf::Color plantColor(PlantType type, std::uint8_t alpha = 255);
 
-    void handleLeftClick(sf::Vector2i position);
+    void handleLeftClick(sf::Vector2f position);
     void drawBackground(sf::RenderWindow& window) const;
     void drawCards(sf::RenderWindow& window) const;
     void drawBoard(sf::RenderWindow& window) const;
+    void drawCombat(sf::RenderWindow& window) const;
     void drawSuns(sf::RenderWindow& window) const;
     void drawToolbar(sf::RenderWindow& window) const;
     void drawPauseOverlay(sf::RenderWindow& window) const;
+    void drawResultOverlay(sf::RenderWindow& window) const;
     void drawPlant(sf::RenderWindow& window, PlantType type, GridPosition position, bool preview) const;
+    void drawHealthBar(sf::RenderWindow& window, float ratio, sf::Vector2f position, float width) const;
     void drawNumber(sf::RenderWindow& window, int value, sf::Vector2f position) const;
 
     GameSession& session_;

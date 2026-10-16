@@ -42,5 +42,33 @@ int main() {
     passed &= check(!session.board().isOccupied({1, 1}), "restart clears the board");
     passed &= check(session.suns().tokens().empty(), "restart clears falling suns");
     passed &= check(!session.cards().isCoolingDown(PlantType::Peashooter), "restart clears cooldowns");
+
+    GameSession pausedCombat;
+    Zombie& pausedZombie = pausedCombat.combat().spawnNormalZombie(2, 700.0F);
+    const float pausedX = pausedZombie.x();
+    pausedCombat.togglePause();
+    pausedCombat.update(2.0F);
+    passed &= check(pausedZombie.x() == pausedX, "pause freezes zombie movement");
+
+    GameSession losingSession;
+    losingSession.combat().spawnNormalZombie(0, CombatSystem::defenseLineX - 1.0F);
+    losingSession.update(0.1F);
+    losingSession.update(2.0F);
+    losingSession.combat().spawnNormalZombie(0, CombatSystem::defenseLineX - 1.0F);
+    losingSession.update(0.1F);
+    passed &= check(losingSession.state() == GameState::Lost, "second lane breach loses the game");
+    passed &= check(
+        losingSession.tryPlace(PlantType::Sunflower, {0, 0}) == PlacementResult::GameOver,
+        "game-over session rejects planting"
+    );
+
+    GameSession winningSession;
+    for (int step = 0; step < 500 && winningSession.state() == GameState::Running; ++step) {
+        winningSession.update(0.1F);
+        for (const auto& zombie : winningSession.combat().zombies()) {
+            zombie->takeDamage(zombie->health());
+        }
+    }
+    passed &= check(winningSession.state() == GameState::Won, "clearing final zombie wins the level");
     return passed ? 0 : 1;
 }

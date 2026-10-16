@@ -40,8 +40,8 @@ bool Board::place(const GridPosition position, const PlantType type) {
         return false;
     }
 
-    cells_[indexOf(position)] = type;
-    return true;
+    cells_[indexOf(position)] = createPlant(type, position);
+    return cells_[indexOf(position)] != nullptr;
 }
 
 bool Board::remove(const GridPosition position) {
@@ -54,18 +54,35 @@ bool Board::remove(const GridPosition position) {
 }
 
 bool Board::isOccupied(const GridPosition position) const {
-    return plantAt(position).has_value();
+    return plantAt(position) != nullptr;
 }
 
-std::optional<PlantType> Board::plantAt(const GridPosition position) const {
+Plant* Board::plantAt(const GridPosition position) {
     if (!BoardGeometry::contains(position)) {
-        return std::nullopt;
+        return nullptr;
     }
-    return cells_[indexOf(position)];
+    return cells_[indexOf(position)].get();
+}
+
+const Plant* Board::plantAt(const GridPosition position) const {
+    if (!BoardGeometry::contains(position)) {
+        return nullptr;
+    }
+    return cells_[indexOf(position)].get();
+}
+
+void Board::removeDeadPlants() {
+    for (auto& plant : cells_) {
+        if (plant && plant->isDead()) {
+            plant.reset();
+        }
+    }
 }
 
 void Board::reset() {
-    cells_.fill(std::nullopt);
+    for (auto& plant : cells_) {
+        plant.reset();
+    }
 }
 
 }  // namespace object_project

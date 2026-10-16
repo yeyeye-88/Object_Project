@@ -23,7 +23,11 @@ int main() {
 
     passed &= check(board.place({2, 4}, PlantType::Peashooter), "plant can be placed in an empty cell");
     passed &= check(!board.place({2, 4}, PlantType::WallNut), "occupied cell rejects a second plant");
-    passed &= check(board.plantAt({2, 4}) == PlantType::Peashooter, "placed plant type is preserved");
+    passed &= check(
+        board.plantAt({2, 4}) != nullptr &&
+            board.plantAt({2, 4})->type() == PlantType::Peashooter,
+        "placed plant type is preserved"
+    );
     passed &= check(board.remove({2, 4}), "occupied cell can be cleared");
     passed &= check(!board.remove({2, 4}), "empty cell cannot be cleared twice");
 

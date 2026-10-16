@@ -10,7 +10,7 @@
 int main() {
     const std::string title = object_project::loadWindowTitle(
         std::filesystem::path{"assets/config/window_title.txt"},
-        "Object Project - M1"
+        "Object Project - M2 Basic Combat"
     );
 
     sf::RenderWindow window(sf::VideoMode({960, 600}), title);
@@ -25,7 +25,7 @@ int main() {
             if (event->is<sf::Event::Closed>()) {
                 window.close();
             } else {
-                screen.handleEvent(*event);
+                screen.handleEvent(*event, window);
             }
         }
 
