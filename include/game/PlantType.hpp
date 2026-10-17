@@ -12,6 +12,9 @@ enum class PlantType : std::size_t {
     Threepeater,
     SnowPea,
     TallNut,
+    PotatoMine,
+    CherryBomb,
+    Torchwood,
     Count,
 };
 

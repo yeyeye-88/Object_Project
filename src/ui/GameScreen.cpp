@@ -52,11 +52,17 @@ GameScreen::GameScreen(GameSession& session) : session_(session) {
         "",
         "",
         "",
+        "",
+        "",
+        "",
     };
     const std::array<std::string, plantTypeCount> plantPaths{
         "assets/plants/sunflower/idle.png",
         "assets/plants/peashooter/idle.png",
         "assets/plants/wallnut/idle.png",
+        "",
+        "",
+        "",
         "",
         "",
         "",
@@ -76,13 +82,16 @@ GameScreen::GameScreen(GameSession& session) : session_(session) {
 
 const std::array<GameScreen::CardLayout, plantTypeCount>& GameScreen::cardLayouts() {
     static const std::array<CardLayout, plantTypeCount> layouts{{
-        {PlantType::Sunflower, {82.0F, 8.0F}},
-        {PlantType::Peashooter, {146.0F, 8.0F}},
-        {PlantType::WallNut, {210.0F, 8.0F}},
-        {PlantType::Repeater, {274.0F, 8.0F}},
-        {PlantType::Threepeater, {338.0F, 8.0F}},
-        {PlantType::SnowPea, {402.0F, 8.0F}},
-        {PlantType::TallNut, {466.0F, 8.0F}},
+        {PlantType::Sunflower, {78.0F, 8.0F}},
+        {PlantType::Peashooter, {128.0F, 8.0F}},
+        {PlantType::WallNut, {178.0F, 8.0F}},
+        {PlantType::Repeater, {228.0F, 8.0F}},
+        {PlantType::Threepeater, {278.0F, 8.0F}},
+        {PlantType::SnowPea, {328.0F, 8.0F}},
+        {PlantType::TallNut, {378.0F, 8.0F}},
+        {PlantType::PotatoMine, {428.0F, 8.0F}},
+        {PlantType::CherryBomb, {478.0F, 8.0F}},
+        {PlantType::Torchwood, {528.0F, 8.0F}},
     }};
     return layouts;
 }
@@ -103,6 +112,12 @@ sf::Color GameScreen::plantColor(const PlantType type, const std::uint8_t alpha)
             return {92, 190, 225, alpha};
         case PlantType::TallNut:
             return {116, 72, 43, alpha};
+        case PlantType::PotatoMine:
+            return {170, 123, 62, alpha};
+        case PlantType::CherryBomb:
+            return {210, 48, 55, alpha};
+        case PlantType::Torchwood:
+            return {218, 112, 35, alpha};
         case PlantType::Count:
             break;
     }

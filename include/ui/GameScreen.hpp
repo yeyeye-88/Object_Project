@@ -24,8 +24,8 @@ private:
         sf::Vector2f position;
     };
 
-    static constexpr sf::Vector2f cardSize{58.0F, 80.0F};
-    static constexpr sf::FloatRect shovelBounds{{530.0F, 15.0F}, {62.0F, 62.0F}};
+    static constexpr sf::Vector2f cardSize{46.0F, 64.0F};
+    static constexpr sf::FloatRect shovelBounds{{600.0F, 15.0F}, {62.0F, 62.0F}};
     static constexpr sf::FloatRect almanacBounds{{790.0F, 18.0F}, {70.0F, 42.0F}};
     static constexpr sf::FloatRect pauseBounds{{874.0F, 18.0F}, {54.0F, 42.0F}};
     static constexpr sf::FloatRect resumeBounds{{365.0F, 260.0F}, {100.0F, 60.0F}};

@@ -51,7 +51,7 @@ void CombatSystem::update(
     }
 
     updatePlants(deltaSeconds, board, suns);
-    updateProjectiles(deltaSeconds);
+    updateProjectiles(deltaSeconds, board);
     updateDelayedAreaDamages(deltaSeconds);
     updateZombies(deltaSeconds, board);
     board.removeDeadPlants();
@@ -120,6 +120,41 @@ bool CombatSystem::hasZombieAhead(const int row, const float x) const {
     );
 }
 
+bool CombatSystem::hasZombieNear(const int row, const float x, const float radius) const {
+    return std::any_of(
+        zombies_.begin(),
+        zombies_.end(),
+        [row, x, radius](const std::unique_ptr<Zombie>& zombie) {
+            const float center = zombie->x() + zombieWidth * 0.5F;
+            return !zombie->isDead() && zombie->row() == row &&
+                   std::abs(center - x) <= radius;
+        }
+    );
+}
+
+void CombatSystem::damageNearestZombie(
+    const int row,
+    const float x,
+    const float radius,
+    const int damage
+) {
+    Zombie* nearest = nullptr;
+    float nearestDistance = radius;
+    for (const auto& zombie : zombies_) {
+        if (zombie->isDead() || zombie->row() != row) {
+            continue;
+        }
+        const float distance = std::abs(zombie->x() + zombieWidth * 0.5F - x);
+        if (distance <= nearestDistance) {
+            nearest = zombie.get();
+            nearestDistance = distance;
+        }
+    }
+    if (nearest != nullptr) {
+        nearest->receiveDamage(damage);
+    }
+}
+
 void CombatSystem::updatePlants(
     const float deltaSeconds,
     Board& board,
@@ -133,16 +168,19 @@ void CombatSystem::updatePlants(
             }
 
             const float originX = BoardGeometry::cellLeft(column) + BoardGeometry::cellWidth * 0.72F;
-            bool enemyAhead = hasZombieAhead(row, originX);
+            const float plantCenterX = BoardGeometry::cellLeft(column) +
+                                       BoardGeometry::cellWidth * 0.5F;
+            PlantUpdateContext context{
+                hasZombieAhead(row, originX),
+                hasZombieNear(row, plantCenterX, potatoMineTriggerRadius),
+            };
             if (plant->type() == PlantType::Threepeater) {
-                enemyAhead = enemyAhead ||
+                context.enemyAhead = context.enemyAhead ||
                     (row > 0 && hasZombieAhead(row - 1, originX)) ||
                     (row + 1 < BoardGeometry::rows && hasZombieAhead(row + 1, originX));
             }
-            const auto action = plant->update(
-                deltaSeconds,
-                enemyAhead
-            );
+            const GridPosition plantPosition = plant->position();
+            const auto action = plant->update(deltaSeconds, context);
             if (action == PlantAction::ProduceSun) {
                 suns.spawnFromPlant(plant->position());
             } else if (action == PlantAction::FirePea) {
@@ -158,14 +196,43 @@ void CombatSystem::updatePlants(
                 }
             } else if (action == PlantAction::FireFrozenPea) {
                 launchProjectile(Projectile::Type::FrozenPea, row, originX);
+            } else if (action == PlantAction::ExplodePotatoMine) {
+                damageNearestZombie(row, plantCenterX, potatoMineTriggerRadius, potatoMineDamage);
+                board.remove(plantPosition);
+            } else if (action == PlantAction::ExplodeCherryBomb) {
+                applyAreaDamage({
+                    row,
+                    plantCenterX,
+                    1,
+                    cherryBombHorizontalRadius,
+                    cherryBombDamage,
+                });
+                board.remove(plantPosition);
             }
         }
     }
 }
 
-void CombatSystem::updateProjectiles(const float deltaSeconds) {
+void CombatSystem::updateProjectiles(const float deltaSeconds, const Board& board) {
     for (Projectile& projectile : projectiles_) {
+        const float previousX = projectile.x;
         projectile.x += projectileSpeed * deltaSeconds;
+
+        if (projectile.type == Projectile::Type::Pea) {
+            for (int column = 0; column < BoardGeometry::columns; ++column) {
+                const Plant* plant = board.plantAt({projectile.row, column});
+                if (plant == nullptr || plant->type() != PlantType::Torchwood) {
+                    continue;
+                }
+                const float torchwoodX = BoardGeometry::cellLeft(column) +
+                                         BoardGeometry::cellWidth * 0.5F;
+                if (previousX <= torchwoodX && projectile.x >= torchwoodX) {
+                    projectile.type = Projectile::Type::FirePea;
+                    projectile.damage *= firePeaDamageMultiplier;
+                    break;
+                }
+            }
+        }
 
         Zombie* target = nullptr;
         for (const auto& zombie : zombies_) {

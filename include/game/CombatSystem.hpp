@@ -61,6 +61,11 @@ public:
     static constexpr float mowerSpeed = 520.0F;
     static constexpr float frozenPeaSpeedMultiplier = 0.5F;
     static constexpr float frozenPeaDurationSeconds = 3.0F;
+    static constexpr float potatoMineTriggerRadius = BoardGeometry::cellWidth * 0.65F;
+    static constexpr int potatoMineDamage = 300;
+    static constexpr int cherryBombDamage = 500;
+    static constexpr float cherryBombHorizontalRadius = BoardGeometry::cellWidth * 1.5F;
+    static constexpr int firePeaDamageMultiplier = 2;
 
     CombatSystem();
 
@@ -95,8 +100,10 @@ public:
 
 private:
     bool hasZombieAhead(int row, float x) const;
+    bool hasZombieNear(int row, float x, float radius) const;
+    void damageNearestZombie(int row, float x, float radius, int damage);
     void updatePlants(float deltaSeconds, Board& board, SunSystem& suns);
-    void updateProjectiles(float deltaSeconds);
+    void updateProjectiles(float deltaSeconds, const Board& board);
     void updateDelayedAreaDamages(float deltaSeconds);
     void updateZombies(float deltaSeconds, Board& board);
     void updateMowers(float deltaSeconds);

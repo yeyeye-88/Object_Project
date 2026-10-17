@@ -123,5 +123,81 @@ int main() {
         snowCombat.update(0.1F, snowBoard, snowSuns);
     }
     passed &= check(snowTarget.isSlowed(), "snow pea projectile slows a zombie on hit");
+
+    CombatSystem mineCombat;
+    Board mineBoard;
+    SunSystem mineSuns(19U);
+    mineBoard.place({2, 3}, PlantType::PotatoMine);
+    const float mineCenter = BoardGeometry::cellLeft(3) + BoardGeometry::cellWidth * 0.5F;
+    mineCombat.spawnNormalZombie(2, mineCenter - CombatSystem::zombieWidth * 0.5F);
+    mineCombat.spawnNormalZombie(
+        2,
+        mineCenter - CombatSystem::zombieWidth * 0.5F + 20.0F
+    );
+    mineCombat.update(PotatoMine::armingSeconds, mineBoard, mineSuns);
+    passed &= check(
+        mineCombat.zombies().size() == 1 && !mineBoard.isOccupied({2, 3}),
+        "armed potato mine destroys only one nearby zombie and removes itself"
+    );
+
+    CombatSystem cherryCombat;
+    Board cherryBoard;
+    SunSystem cherrySuns(21U);
+    cherryBoard.place({2, 4}, PlantType::CherryBomb);
+    const float cherryCenter = BoardGeometry::cellLeft(4) + BoardGeometry::cellWidth * 0.5F;
+    cherryCombat.spawnZombie(
+        ZombieType::Buckethead,
+        1,
+        cherryCenter - CombatSystem::zombieWidth * 0.5F
+    );
+    cherryCombat.spawnZombie(
+        ZombieType::Conehead,
+        3,
+        cherryCenter - CombatSystem::zombieWidth * 0.5F
+    );
+    cherryCombat.spawnNormalZombie(4, cherryCenter - CombatSystem::zombieWidth * 0.5F);
+    cherryCombat.update(CherryBomb::fuseSeconds, cherryBoard, cherrySuns);
+    passed &= check(
+        cherryCombat.zombies().size() == 1 &&
+            cherryCombat.zombies().front()->row() == 4 &&
+            !cherryBoard.isOccupied({2, 4}),
+        "cherry bomb damages three lanes and removes itself"
+    );
+
+    CombatSystem torchCombat;
+    Board torchBoard;
+    SunSystem torchSuns(23U);
+    torchBoard.place({2, 0}, PlantType::Peashooter);
+    torchBoard.place({2, 2}, PlantType::Torchwood);
+    Zombie& fireTarget = torchCombat.spawnNormalZombie(2, 800.0F);
+    torchCombat.update(Peashooter::attackIntervalSeconds, torchBoard, torchSuns);
+    passed &= check(
+        torchCombat.projectiles().size() == 1 &&
+            torchCombat.projectiles().front().type == Projectile::Type::FirePea &&
+            torchCombat.projectiles().front().damage ==
+                CombatSystem::projectileDamage * CombatSystem::firePeaDamageMultiplier,
+        "torchwood converts a normal pea into a stronger fire pea"
+    );
+    torchCombat.update(0.5F, torchBoard, torchSuns);
+    passed &= check(
+        fireTarget.health() == NormalZombie::maximumHealth - 40,
+        "fire pea deals doubled damage"
+    );
+
+    CombatSystem frozenTorchCombat;
+    Board frozenTorchBoard;
+    SunSystem frozenTorchSuns(25U);
+    frozenTorchBoard.place({1, 2}, PlantType::Torchwood);
+    frozenTorchCombat.launchProjectile(
+        Projectile::Type::FrozenPea,
+        1,
+        BoardGeometry::cellLeft(1)
+    );
+    frozenTorchCombat.update(0.6F, frozenTorchBoard, frozenTorchSuns);
+    passed &= check(
+        frozenTorchCombat.projectiles().front().type == Projectile::Type::FrozenPea &&
+            frozenTorchCombat.projectiles().front().damage == CombatSystem::projectileDamage,
+        "torchwood does not transform frozen peas"
+    );
     return passed ? 0 : 1;
 }

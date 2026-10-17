@@ -10,9 +10,9 @@ Sunflower::Sunflower(const GridPosition position)
 
 std::optional<PlantAction> Sunflower::update(
     const float deltaSeconds,
-    const bool enemyAhead
+    const PlantUpdateContext& context
 ) {
-    static_cast<void>(enemyAhead);
+    static_cast<void>(context);
     if (deltaSeconds <= 0.0F) {
         return std::nullopt;
     }
@@ -29,9 +29,9 @@ Peashooter::Peashooter(const GridPosition position)
 
 std::optional<PlantAction> Peashooter::update(
     const float deltaSeconds,
-    const bool enemyAhead
+    const PlantUpdateContext& context
 ) {
-    if (deltaSeconds <= 0.0F || !enemyAhead) {
+    if (deltaSeconds <= 0.0F || !context.enemyAhead) {
         return std::nullopt;
     }
     attackTimer_ += deltaSeconds;
@@ -47,10 +47,10 @@ WallNut::WallNut(const GridPosition position)
 
 std::optional<PlantAction> WallNut::update(
     const float deltaSeconds,
-    const bool enemyAhead
+    const PlantUpdateContext& context
 ) {
     static_cast<void>(deltaSeconds);
-    static_cast<void>(enemyAhead);
+    static_cast<void>(context);
     return std::nullopt;
 }
 
@@ -59,9 +59,9 @@ Repeater::Repeater(const GridPosition position)
 
 std::optional<PlantAction> Repeater::update(
     const float deltaSeconds,
-    const bool enemyAhead
+    const PlantUpdateContext& context
 ) {
-    if (deltaSeconds <= 0.0F || !enemyAhead) {
+    if (deltaSeconds <= 0.0F || !context.enemyAhead) {
         return std::nullopt;
     }
     attackTimer_ += deltaSeconds;
@@ -77,9 +77,9 @@ Threepeater::Threepeater(const GridPosition position)
 
 std::optional<PlantAction> Threepeater::update(
     const float deltaSeconds,
-    const bool enemyAhead
+    const PlantUpdateContext& context
 ) {
-    if (deltaSeconds <= 0.0F || !enemyAhead) {
+    if (deltaSeconds <= 0.0F || !context.enemyAhead) {
         return std::nullopt;
     }
     attackTimer_ += deltaSeconds;
@@ -95,9 +95,9 @@ SnowPea::SnowPea(const GridPosition position)
 
 std::optional<PlantAction> SnowPea::update(
     const float deltaSeconds,
-    const bool enemyAhead
+    const PlantUpdateContext& context
 ) {
-    if (deltaSeconds <= 0.0F || !enemyAhead) {
+    if (deltaSeconds <= 0.0F || !context.enemyAhead) {
         return std::nullopt;
     }
     attackTimer_ += deltaSeconds;
@@ -113,10 +113,55 @@ TallNut::TallNut(const GridPosition position)
 
 std::optional<PlantAction> TallNut::update(
     const float deltaSeconds,
-    const bool enemyAhead
+    const PlantUpdateContext& context
 ) {
     static_cast<void>(deltaSeconds);
-    static_cast<void>(enemyAhead);
+    static_cast<void>(context);
+    return std::nullopt;
+}
+
+PotatoMine::PotatoMine(const GridPosition position)
+    : Plant(PlantType::PotatoMine, position, maximumHealth) {}
+
+std::optional<PlantAction> PotatoMine::update(
+    const float deltaSeconds,
+    const PlantUpdateContext& context
+) {
+    if (deltaSeconds > 0.0F && !isArmed()) {
+        armingTimer_ += deltaSeconds;
+    }
+    if (isArmed() && context.enemyNearby) {
+        return PlantAction::ExplodePotatoMine;
+    }
+    return std::nullopt;
+}
+
+CherryBomb::CherryBomb(const GridPosition position)
+    : Plant(PlantType::CherryBomb, position, maximumHealth) {}
+
+std::optional<PlantAction> CherryBomb::update(
+    const float deltaSeconds,
+    const PlantUpdateContext& context
+) {
+    static_cast<void>(context);
+    if (deltaSeconds <= 0.0F) {
+        return std::nullopt;
+    }
+    fuseTimer_ += deltaSeconds;
+    return fuseTimer_ >= fuseSeconds
+        ? std::optional<PlantAction>{PlantAction::ExplodeCherryBomb}
+        : std::nullopt;
+}
+
+Torchwood::Torchwood(const GridPosition position)
+    : Plant(PlantType::Torchwood, position, maximumHealth) {}
+
+std::optional<PlantAction> Torchwood::update(
+    const float deltaSeconds,
+    const PlantUpdateContext& context
+) {
+    static_cast<void>(deltaSeconds);
+    static_cast<void>(context);
     return std::nullopt;
 }
 
@@ -136,6 +181,12 @@ std::unique_ptr<Plant> createPlant(const PlantType type, const GridPosition posi
             return std::make_unique<SnowPea>(position);
         case PlantType::TallNut:
             return std::make_unique<TallNut>(position);
+        case PlantType::PotatoMine:
+            return std::make_unique<PotatoMine>(position);
+        case PlantType::CherryBomb:
+            return std::make_unique<CherryBomb>(position);
+        case PlantType::Torchwood:
+            return std::make_unique<Torchwood>(position);
         case PlantType::Count:
             break;
     }

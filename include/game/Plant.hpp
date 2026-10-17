@@ -9,12 +9,19 @@
 
 namespace object_project {
 
+struct PlantUpdateContext {
+    bool enemyAhead{};
+    bool enemyNearby{};
+};
+
 enum class PlantAction {
     ProduceSun,
     FirePea,
     FireDoublePea,
     FireThreeRows,
     FireFrozenPea,
+    ExplodePotatoMine,
+    ExplodeCherryBomb,
 };
 
 class Plant : public Entity {
@@ -25,7 +32,10 @@ public:
     PlantType type() const { return type_; }
     GridPosition position() const { return position_; }
     virtual bool blocksVaulting() const { return false; }
-    virtual std::optional<PlantAction> update(float deltaSeconds, bool enemyAhead) = 0;
+    virtual std::optional<PlantAction> update(
+        float deltaSeconds,
+        const PlantUpdateContext& context
+    ) = 0;
 
 private:
     PlantType type_;
@@ -38,7 +48,7 @@ public:
     static constexpr float productionIntervalSeconds = 8.0F;
 
     explicit Sunflower(GridPosition position);
-    std::optional<PlantAction> update(float deltaSeconds, bool enemyAhead) override;
+    std::optional<PlantAction> update(float deltaSeconds, const PlantUpdateContext& context) override;
 
 private:
     float productionTimer_{};
@@ -50,7 +60,7 @@ public:
     static constexpr float attackIntervalSeconds = 1.5F;
 
     explicit Peashooter(GridPosition position);
-    std::optional<PlantAction> update(float deltaSeconds, bool enemyAhead) override;
+    std::optional<PlantAction> update(float deltaSeconds, const PlantUpdateContext& context) override;
 
 private:
     float attackTimer_{};
@@ -61,7 +71,7 @@ public:
     static constexpr int maximumHealth = 500;
 
     explicit WallNut(GridPosition position);
-    std::optional<PlantAction> update(float deltaSeconds, bool enemyAhead) override;
+    std::optional<PlantAction> update(float deltaSeconds, const PlantUpdateContext& context) override;
 };
 
 class Repeater final : public Plant {
@@ -70,7 +80,7 @@ public:
     static constexpr float attackIntervalSeconds = 1.5F;
 
     explicit Repeater(GridPosition position);
-    std::optional<PlantAction> update(float deltaSeconds, bool enemyAhead) override;
+    std::optional<PlantAction> update(float deltaSeconds, const PlantUpdateContext& context) override;
 
 private:
     float attackTimer_{};
@@ -82,7 +92,7 @@ public:
     static constexpr float attackIntervalSeconds = 1.8F;
 
     explicit Threepeater(GridPosition position);
-    std::optional<PlantAction> update(float deltaSeconds, bool enemyAhead) override;
+    std::optional<PlantAction> update(float deltaSeconds, const PlantUpdateContext& context) override;
 
 private:
     float attackTimer_{};
@@ -94,7 +104,7 @@ public:
     static constexpr float attackIntervalSeconds = 1.5F;
 
     explicit SnowPea(GridPosition position);
-    std::optional<PlantAction> update(float deltaSeconds, bool enemyAhead) override;
+    std::optional<PlantAction> update(float deltaSeconds, const PlantUpdateContext& context) override;
 
 private:
     float attackTimer_{};
@@ -106,7 +116,40 @@ public:
 
     explicit TallNut(GridPosition position);
     bool blocksVaulting() const override { return true; }
-    std::optional<PlantAction> update(float deltaSeconds, bool enemyAhead) override;
+    std::optional<PlantAction> update(float deltaSeconds, const PlantUpdateContext& context) override;
+};
+
+class PotatoMine final : public Plant {
+public:
+    static constexpr int maximumHealth = 100;
+    static constexpr float armingSeconds = 3.0F;
+
+    explicit PotatoMine(GridPosition position);
+    bool isArmed() const { return armingTimer_ >= armingSeconds; }
+    std::optional<PlantAction> update(float deltaSeconds, const PlantUpdateContext& context) override;
+
+private:
+    float armingTimer_{};
+};
+
+class CherryBomb final : public Plant {
+public:
+    static constexpr int maximumHealth = 100;
+    static constexpr float fuseSeconds = 0.8F;
+
+    explicit CherryBomb(GridPosition position);
+    std::optional<PlantAction> update(float deltaSeconds, const PlantUpdateContext& context) override;
+
+private:
+    float fuseTimer_{};
+};
+
+class Torchwood final : public Plant {
+public:
+    static constexpr int maximumHealth = 150;
+
+    explicit Torchwood(GridPosition position);
+    std::optional<PlantAction> update(float deltaSeconds, const PlantUpdateContext& context) override;
 };
 
 std::unique_ptr<Plant> createPlant(PlantType type, GridPosition position);

@@ -17,21 +17,21 @@ int main() {
 
     Sunflower sunflower({1, 2});
     passed &= check(
-        !sunflower.update(Sunflower::productionIntervalSeconds - 0.1F, false),
+        !sunflower.update(Sunflower::productionIntervalSeconds - 0.1F, {}),
         "sunflower does not produce sun early"
     );
     passed &= check(
-        sunflower.update(0.1F, false) == PlantAction::ProduceSun,
+        sunflower.update(0.1F, {}) == PlantAction::ProduceSun,
         "sunflower produces sun on schedule"
     );
 
     Peashooter peashooter({2, 3});
     passed &= check(
-        !peashooter.update(Peashooter::attackIntervalSeconds, false),
+        !peashooter.update(Peashooter::attackIntervalSeconds, {}),
         "peashooter waits without a target"
     );
     passed &= check(
-        peashooter.update(Peashooter::attackIntervalSeconds, true) == PlantAction::FirePea,
+        peashooter.update(Peashooter::attackIntervalSeconds, {true, false}) == PlantAction::FirePea,
         "peashooter fires when an enemy is ahead"
     );
 
@@ -45,19 +45,19 @@ int main() {
 
     Repeater repeater({2, 2});
     passed &= check(
-        repeater.update(Repeater::attackIntervalSeconds, true) == PlantAction::FireDoublePea,
+        repeater.update(Repeater::attackIntervalSeconds, {true, false}) == PlantAction::FireDoublePea,
         "repeater requests a double shot"
     );
 
     Threepeater threepeater({2, 2});
     passed &= check(
-        threepeater.update(Threepeater::attackIntervalSeconds, true) == PlantAction::FireThreeRows,
+        threepeater.update(Threepeater::attackIntervalSeconds, {true, false}) == PlantAction::FireThreeRows,
         "threepeater requests a three-lane shot"
     );
 
     SnowPea snowPea({1, 3});
     passed &= check(
-        snowPea.update(SnowPea::attackIntervalSeconds, true) == PlantAction::FireFrozenPea,
+        snowPea.update(SnowPea::attackIntervalSeconds, {true, false}) == PlantAction::FireFrozenPea,
         "snow pea requests a frozen shot"
     );
 
@@ -66,5 +66,28 @@ int main() {
         tallNut.maxHealth() > wallNut.maxHealth() && tallNut.blocksVaulting(),
         "tall-nut has heavy health and blocks vaulting"
     );
+
+    PotatoMine potatoMine({2, 3});
+    passed &= check(
+        !potatoMine.update(PotatoMine::armingSeconds - 0.1F, {false, true}),
+        "potato mine does not trigger before arming"
+    );
+    passed &= check(
+        potatoMine.update(0.1F, {false, true}) == PlantAction::ExplodePotatoMine,
+        "armed potato mine triggers for a nearby zombie"
+    );
+
+    CherryBomb cherryBomb({2, 3});
+    passed &= check(
+        !cherryBomb.update(CherryBomb::fuseSeconds - 0.1F, {}),
+        "cherry bomb waits for its fuse"
+    );
+    passed &= check(
+        cherryBomb.update(0.1F, {}) == PlantAction::ExplodeCherryBomb,
+        "cherry bomb explodes after its fuse"
+    );
+
+    Torchwood torchwood({2, 3});
+    passed &= check(!torchwood.update(10.0F, {true, true}), "torchwood has no timed action");
     return passed ? 0 : 1;
 }
