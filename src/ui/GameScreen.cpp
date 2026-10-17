@@ -339,7 +339,13 @@ void GameScreen::drawCombat(sf::RenderWindow& window) const {
     for (const Projectile& projectile : session_.combat().projectiles()) {
         sf::CircleShape pea(7.0F);
         pea.setPosition({projectile.x, BoardGeometry::cellTop(projectile.row) + 39.0F});
-        pea.setFillColor({92, 220, 65});
+        if (projectile.type == Projectile::Type::FrozenPea) {
+            pea.setFillColor({104, 205, 245});
+        } else if (projectile.type == Projectile::Type::FirePea) {
+            pea.setFillColor({245, 118, 42});
+        } else {
+            pea.setFillColor({92, 220, 65});
+        }
         pea.setOutlineColor({35, 105, 28});
         pea.setOutlineThickness(2.0F);
         window.draw(pea);
@@ -354,6 +360,13 @@ void GameScreen::drawCombat(sf::RenderWindow& window) const {
             bodyColor = {152, 118, 65};
         } else if (zombie->type() == ZombieType::Buckethead) {
             bodyColor = {98, 111, 116};
+        }
+        if (zombie->isSlowed()) {
+            bodyColor = sf::Color(
+                static_cast<std::uint8_t>(bodyColor.r * 0.7F),
+                static_cast<std::uint8_t>(bodyColor.g * 0.85F),
+                190
+            );
         }
         body.setFillColor(bodyColor);
         body.setOutlineColor({48, 61, 42});

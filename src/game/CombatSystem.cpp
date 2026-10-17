@@ -52,6 +52,7 @@ void CombatSystem::update(
 
     updatePlants(deltaSeconds, board, suns);
     updateProjectiles(deltaSeconds);
+    updateDelayedAreaDamages(deltaSeconds);
     updateZombies(deltaSeconds, board);
     board.removeDeadPlants();
     updateMowers(deltaSeconds);
@@ -61,11 +62,52 @@ void CombatSystem::update(
 void CombatSystem::reset() {
     zombies_.clear();
     projectiles_.clear();
+    delayedAreaDamages_.clear();
     nextProjectileId_ = 1;
+    nextAreaDamageId_ = 1;
     breached_ = false;
     for (int row = 0; row < BoardGeometry::rows; ++row) {
         mowers_[static_cast<std::size_t>(row)] = {row, mowerStartX, LawnMowerState::Ready};
     }
+}
+
+void CombatSystem::launchProjectile(
+    const Projectile::Type type,
+    const int row,
+    const float x,
+    const int damage
+) {
+    if (row < 0 || row >= BoardGeometry::rows || damage <= 0) {
+        return;
+    }
+    projectiles_.push_back({nextProjectileId_++, row, x, damage, type});
+}
+
+void CombatSystem::applyAreaDamage(const AreaDamage& area) {
+    if (area.rowRadius < 0 || area.horizontalRadius < 0.0F || area.damage <= 0) {
+        return;
+    }
+    for (const auto& zombie : zombies_) {
+        if (zombie->isDead() ||
+            std::abs(zombie->row() - area.centerRow) > area.rowRadius) {
+            continue;
+        }
+        const float zombieCenter = zombie->x() + zombieWidth * 0.5F;
+        if (std::abs(zombieCenter - area.centerX) <= area.horizontalRadius) {
+            zombie->receiveDamage(area.damage);
+        }
+    }
+}
+
+void CombatSystem::scheduleAreaDamage(const AreaDamage& area, const float delaySeconds) {
+    if (delaySeconds <= 0.0F) {
+        applyAreaDamage(area);
+        return;
+    }
+    if (area.rowRadius < 0 || area.horizontalRadius < 0.0F || area.damage <= 0) {
+        return;
+    }
+    delayedAreaDamages_.push_back({nextAreaDamageId_++, area, delaySeconds});
 }
 
 bool CombatSystem::hasZombieAhead(const int row, const float x) const {
@@ -104,14 +146,14 @@ void CombatSystem::updatePlants(
             if (action == PlantAction::ProduceSun) {
                 suns.spawnFromPlant(plant->position());
             } else if (action == PlantAction::FirePea) {
-                projectiles_.push_back({nextProjectileId_++, row, originX, projectileDamage});
+                launchProjectile(Projectile::Type::Pea, row, originX);
             } else if (action == PlantAction::FireDoublePea) {
-                projectiles_.push_back({nextProjectileId_++, row, originX, projectileDamage});
-                projectiles_.push_back({nextProjectileId_++, row, originX - 14.0F, projectileDamage});
+                launchProjectile(Projectile::Type::Pea, row, originX);
+                launchProjectile(Projectile::Type::Pea, row, originX - 14.0F);
             } else if (action == PlantAction::FireThreeRows) {
                 for (int targetRow = row - 1; targetRow <= row + 1; ++targetRow) {
                     if (targetRow >= 0 && targetRow < BoardGeometry::rows) {
-                        projectiles_.push_back({nextProjectileId_++, targetRow, originX, projectileDamage});
+                        launchProjectile(Projectile::Type::Pea, targetRow, originX);
                     }
                 }
             }
@@ -136,6 +178,9 @@ void CombatSystem::updateProjectiles(const float deltaSeconds) {
         }
         if (target != nullptr) {
             target->receiveDamage(projectile.damage);
+            if (projectile.type == Projectile::Type::FrozenPea) {
+                target->applySlow(frozenPeaSpeedMultiplier, frozenPeaDurationSeconds);
+            }
             projectile.damage = 0;
         }
     }
@@ -151,6 +196,25 @@ void CombatSystem::updateProjectiles(const float deltaSeconds) {
             }
         ),
         projectiles_.end()
+    );
+}
+
+void CombatSystem::updateDelayedAreaDamages(const float deltaSeconds) {
+    for (DelayedAreaDamage& delayed : delayedAreaDamages_) {
+        delayed.remainingSeconds -= deltaSeconds;
+        if (delayed.remainingSeconds <= 0.0F) {
+            applyAreaDamage(delayed.area);
+        }
+    }
+    delayedAreaDamages_.erase(
+        std::remove_if(
+            delayedAreaDamages_.begin(),
+            delayedAreaDamages_.end(),
+            [](const DelayedAreaDamage& delayed) {
+                return delayed.remainingSeconds <= 0.0F;
+            }
+        ),
+        delayedAreaDamages_.end()
     );
 }
 
@@ -179,6 +243,7 @@ void CombatSystem::updateZombies(const float deltaSeconds, Board& board) {
         } else if (zombie->updateAttack(deltaSeconds, true)) {
             blockingPlant->takeDamage(zombie->attackDamage());
         }
+        zombie->updateStatusEffects(deltaSeconds);
     }
 }
 

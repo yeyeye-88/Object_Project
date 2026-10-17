@@ -30,7 +30,12 @@ public:
     float x() const { return x_; }
     int armor() const { return armor_; }
     int maxArmor() const { return maxArmor_; }
+    bool isSlowed() const { return slowRemainingSeconds_ > 0.0F; }
+    float speedMultiplier() const { return slowMultiplier_; }
+    float slowRemainingSeconds() const { return slowRemainingSeconds_; }
     void receiveDamage(int amount);
+    void applySlow(float speedMultiplier, float durationSeconds);
+    void updateStatusEffects(float deltaSeconds);
     void move(float deltaSeconds);
     bool updateAttack(float deltaSeconds, bool blocked);
 
@@ -40,6 +45,8 @@ private:
     float attackTimer_{};
     int armor_{};
     int maxArmor_{};
+    float slowMultiplier_{1.0F};
+    float slowRemainingSeconds_{};
 };
 
 class NormalZombie final : public Zombie {

@@ -74,5 +74,38 @@ int main() {
         threepeaterCombat.projectiles().size() == 3,
         "threepeater fires into its lane and adjacent lanes"
     );
+
+    CombatSystem effectCombat;
+    Board effectBoard;
+    SunSystem effectSuns(15U);
+    Zombie& frozenTarget = effectCombat.spawnNormalZombie(1, 400.0F);
+    effectCombat.launchProjectile(Projectile::Type::FrozenPea, 1, 390.0F);
+    effectCombat.update(0.01F, effectBoard, effectSuns);
+    passed &= check(
+        frozenTarget.isSlowed() && frozenTarget.health() < NormalZombie::maximumHealth,
+        "frozen projectile damages and slows its target"
+    );
+
+    Zombie& centerTarget = effectCombat.spawnZombie(ZombieType::Buckethead, 2, 500.0F);
+    Zombie& adjacentTarget = effectCombat.spawnZombie(ZombieType::Conehead, 3, 515.0F);
+    Zombie& distantTarget = effectCombat.spawnNormalZombie(4, 700.0F);
+    const AreaDamage blast{2, 523.0F, 1, 80.0F, 60};
+    effectCombat.applyAreaDamage(blast);
+    passed &= check(
+        centerTarget.armor() == BucketheadZombie::maximumArmor - 60 &&
+            adjacentTarget.armor() == ConeheadZombie::maximumArmor - 60 &&
+            distantTarget.health() == NormalZombie::maximumHealth,
+        "area damage hits only zombies inside row and horizontal radius"
+    );
+
+    const int armorBeforeDelay = centerTarget.armor();
+    effectCombat.scheduleAreaDamage({2, 523.0F, 0, 80.0F, 40}, 1.0F);
+    effectCombat.update(0.5F, effectBoard, effectSuns);
+    passed &= check(centerTarget.armor() == armorBeforeDelay, "delayed area damage waits for its timer");
+    effectCombat.update(0.5F, effectBoard, effectSuns);
+    passed &= check(
+        centerTarget.armor() == armorBeforeDelay - 40 && effectCombat.delayedAreaDamages().empty(),
+        "delayed area damage triggers once and is removed"
+    );
     return passed ? 0 : 1;
 }

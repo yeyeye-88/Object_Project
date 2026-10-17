@@ -33,5 +33,25 @@ int main() {
             buckethead->armor() == BucketheadZombie::maximumArmor,
         "zombie factory creates a buckethead with heavy armor"
     );
+
+    NormalZombie slowed(2, 500.0F);
+    slowed.applySlow(0.5F, 2.0F);
+    slowed.move(1.0F);
+    passed &= check(
+        slowed.isSlowed() && slowed.x() == 500.0F - NormalZombie::speed * 0.5F,
+        "slow reduces zombie movement speed"
+    );
+    passed &= check(
+        !slowed.updateAttack(NormalZombie::attackInterval, true) &&
+            slowed.updateAttack(NormalZombie::attackInterval, true),
+        "slow increases zombie attack interval"
+    );
+    slowed.applySlow(0.75F, 3.0F);
+    passed &= check(
+        slowed.speedMultiplier() == 0.5F && slowed.slowRemainingSeconds() == 3.0F,
+        "weaker slow refreshes duration without replacing stronger slow"
+    );
+    slowed.updateStatusEffects(3.0F);
+    passed &= check(!slowed.isSlowed() && slowed.speedMultiplier() == 1.0F, "slow expires cleanly");
     return passed ? 0 : 1;
 }

@@ -21,9 +21,27 @@ void Zombie::receiveDamage(const int amount) {
     takeDamage(amount - armorDamage);
 }
 
+void Zombie::applySlow(const float speedMultiplier, const float durationSeconds) {
+    if (speedMultiplier <= 0.0F || speedMultiplier > 1.0F || durationSeconds <= 0.0F) {
+        return;
+    }
+    slowMultiplier_ = std::min(slowMultiplier_, speedMultiplier);
+    slowRemainingSeconds_ = std::max(slowRemainingSeconds_, durationSeconds);
+}
+
+void Zombie::updateStatusEffects(const float deltaSeconds) {
+    if (deltaSeconds <= 0.0F || slowRemainingSeconds_ <= 0.0F) {
+        return;
+    }
+    slowRemainingSeconds_ = std::max(0.0F, slowRemainingSeconds_ - deltaSeconds);
+    if (slowRemainingSeconds_ == 0.0F) {
+        slowMultiplier_ = 1.0F;
+    }
+}
+
 void Zombie::move(const float deltaSeconds) {
     if (deltaSeconds > 0.0F) {
-        x_ -= movementSpeed() * deltaSeconds;
+        x_ -= movementSpeed() * slowMultiplier_ * deltaSeconds;
     }
 }
 
@@ -36,10 +54,11 @@ bool Zombie::updateAttack(const float deltaSeconds, const bool blocked) {
         return false;
     }
     attackTimer_ += deltaSeconds;
-    if (attackTimer_ < attackIntervalSeconds()) {
+    const float effectiveInterval = attackIntervalSeconds() / slowMultiplier_;
+    if (attackTimer_ < effectiveInterval) {
         return false;
     }
-    attackTimer_ -= attackIntervalSeconds();
+    attackTimer_ -= effectiveInterval;
     return true;
 }
 
