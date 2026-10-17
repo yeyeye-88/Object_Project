@@ -8,6 +8,8 @@ CardSystem::CardSystem() {
     definitions_[toIndex(PlantType::Sunflower)] = {50, 7.5F};
     definitions_[toIndex(PlantType::Peashooter)] = {100, 7.5F};
     definitions_[toIndex(PlantType::WallNut)] = {50, 30.0F};
+    definitions_[toIndex(PlantType::Repeater)] = {200, 7.5F};
+    definitions_[toIndex(PlantType::Threepeater)] = {325, 7.5F};
 }
 
 const CardDefinition& CardSystem::definition(const PlantType type) const {

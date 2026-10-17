@@ -1,5 +1,6 @@
 #include "core/AppConfig.hpp"
 #include "game/GameSession.hpp"
+#include "ui/AlmanacScreen.hpp"
 #include "ui/GameScreen.hpp"
 
 #include <SFML/Graphics.hpp>
@@ -10,7 +11,7 @@
 int main() {
     const std::string title = object_project::loadWindowTitle(
         std::filesystem::path{"assets/config/window_title.txt"},
-        "Object Project - M2 Basic Combat"
+        "Object Project - M3 Course Requirements"
     );
 
     sf::RenderWindow window(sf::VideoMode({960, 600}), title);
@@ -18,22 +19,36 @@ int main() {
 
     object_project::GameSession session;
     object_project::GameScreen screen(session);
+    object_project::AlmanacScreen almanac;
+    bool showingAlmanac = false;
     sf::Clock frameClock;
 
     while (window.isOpen()) {
         while (const auto event = window.pollEvent()) {
             if (event->is<sf::Event::Closed>()) {
                 window.close();
+            } else if (showingAlmanac) {
+                showingAlmanac = !almanac.handleEvent(*event, window);
             } else {
                 screen.handleEvent(*event, window);
             }
         }
 
+        if (screen.takeAlmanacRequest()) {
+            showingAlmanac = true;
+        }
+
         const float deltaSeconds = std::min(frameClock.restart().asSeconds(), 0.1F);
-        session.update(deltaSeconds);
+        if (!showingAlmanac) {
+            session.update(deltaSeconds);
+        }
 
         window.clear(sf::Color(35, 71, 39));
-        screen.draw(window);
+        if (showingAlmanac) {
+            almanac.draw(window);
+        } else {
+            screen.draw(window);
+        }
         window.display();
     }
 

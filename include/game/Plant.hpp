@@ -12,6 +12,8 @@ namespace object_project {
 enum class PlantAction {
     ProduceSun,
     FirePea,
+    FireDoublePea,
+    FireThreeRows,
 };
 
 class Plant : public Entity {
@@ -58,6 +60,30 @@ public:
 
     explicit WallNut(GridPosition position);
     std::optional<PlantAction> update(float deltaSeconds, bool enemyAhead) override;
+};
+
+class Repeater final : public Plant {
+public:
+    static constexpr int maximumHealth = 100;
+    static constexpr float attackIntervalSeconds = 1.5F;
+
+    explicit Repeater(GridPosition position);
+    std::optional<PlantAction> update(float deltaSeconds, bool enemyAhead) override;
+
+private:
+    float attackTimer_{};
+};
+
+class Threepeater final : public Plant {
+public:
+    static constexpr int maximumHealth = 100;
+    static constexpr float attackIntervalSeconds = 1.8F;
+
+    explicit Threepeater(GridPosition position);
+    std::optional<PlantAction> update(float deltaSeconds, bool enemyAhead) override;
+
+private:
+    float attackTimer_{};
 };
 
 std::unique_ptr<Plant> createPlant(PlantType type, GridPosition position);

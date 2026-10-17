@@ -48,16 +48,22 @@ GameScreen::GameScreen(GameSession& session) : session_(session) {
         "assets/cards/sunflower.png",
         "assets/cards/peashooter.png",
         "assets/cards/wallnut.png",
+        "",
+        "",
     };
     const std::array<std::string, plantTypeCount> plantPaths{
         "assets/plants/sunflower/idle.png",
         "assets/plants/peashooter/idle.png",
         "assets/plants/wallnut/idle.png",
+        "",
+        "",
     };
 
     for (std::size_t index = 0; index < plantTypeCount; ++index) {
-        cardLoaded_[index] = cardTextures_[index].loadFromFile(cardPaths[index]);
-        plantLoaded_[index] = plantTextures_[index].loadFromFile(plantPaths[index]);
+        cardLoaded_[index] = !cardPaths[index].empty() &&
+                             cardTextures_[index].loadFromFile(cardPaths[index]);
+        plantLoaded_[index] = !plantPaths[index].empty() &&
+                              plantTextures_[index].loadFromFile(plantPaths[index]);
     }
 
     sunLoaded_ = sunTexture_.loadFromFile("assets/sun/sun.png");
@@ -69,6 +75,8 @@ const std::array<GameScreen::CardLayout, plantTypeCount>& GameScreen::cardLayout
         {PlantType::Sunflower, {82.0F, 8.0F}},
         {PlantType::Peashooter, {146.0F, 8.0F}},
         {PlantType::WallNut, {210.0F, 8.0F}},
+        {PlantType::Repeater, {274.0F, 8.0F}},
+        {PlantType::Threepeater, {338.0F, 8.0F}},
     }};
     return layouts;
 }
@@ -81,10 +89,20 @@ sf::Color GameScreen::plantColor(const PlantType type, const std::uint8_t alpha)
             return {74, 178, 75, alpha};
         case PlantType::WallNut:
             return {155, 95, 48, alpha};
+        case PlantType::Repeater:
+            return {40, 140, 70, alpha};
+        case PlantType::Threepeater:
+            return {80, 190, 120, alpha};
         case PlantType::Count:
             break;
     }
     return {220, 220, 220, alpha};
+}
+
+bool GameScreen::takeAlmanacRequest() {
+    const bool requested = almanacRequested_;
+    almanacRequested_ = false;
+    return requested;
 }
 
 void GameScreen::handleEvent(
@@ -122,6 +140,13 @@ void GameScreen::handleEvent(
 }
 
 void GameScreen::handleLeftClick(const sf::Vector2f position) {
+    if (contains(almanacBounds, position)) {
+        almanacRequested_ = true;
+        selectedPlant_.reset();
+        shovelSelected_ = false;
+        return;
+    }
+
     if (contains(pauseBounds, position)) {
         session_.togglePause();
         return;
@@ -257,6 +282,44 @@ void GameScreen::drawBoard(sf::RenderWindow& window) const {
 void GameScreen::drawCombat(sf::RenderWindow& window) const {
     for (const LawnMower& mower : session_.combat().mowers()) {
         if (mower.state == LawnMowerState::Used) {
+            const float laneTop = BoardGeometry::cellTop(mower.row);
+
+            sf::RectangleShape emptyBay({48.0F, 34.0F});
+            emptyBay.setPosition({CombatSystem::mowerStartX, laneTop + 54.0F});
+            emptyBay.setFillColor({42, 42, 38, 125});
+            emptyBay.setOutlineColor({155, 58, 45, 220});
+            emptyBay.setOutlineThickness(3.0F);
+            window.draw(emptyBay);
+
+            for (const float yOffset : {66.0F, 82.0F}) {
+                for (int column = 0; column < BoardGeometry::columns; ++column) {
+                    sf::RectangleShape track({BoardGeometry::cellWidth * 0.62F, 4.0F});
+                    track.setPosition({
+                        BoardGeometry::cellLeft(column) + BoardGeometry::cellWidth * 0.18F,
+                        laneTop + yOffset,
+                    });
+                    track.setFillColor({25, 30, 22, 72});
+                    window.draw(track);
+                }
+            }
+
+            sf::ConvexShape warning(3);
+            warning.setPoint(0, {CombatSystem::mowerStartX + 24.0F, laneTop + 8.0F});
+            warning.setPoint(1, {CombatSystem::mowerStartX + 7.0F, laneTop + 42.0F});
+            warning.setPoint(2, {CombatSystem::mowerStartX + 41.0F, laneTop + 42.0F});
+            warning.setFillColor({205, 55, 42, 235});
+            warning.setOutlineColor({255, 214, 118});
+            warning.setOutlineThickness(2.0F);
+            window.draw(warning);
+
+            sf::RectangleShape warningStem({4.0F, 15.0F});
+            warningStem.setPosition({CombatSystem::mowerStartX + 22.0F, laneTop + 18.0F});
+            warningStem.setFillColor(sf::Color::White);
+            window.draw(warningStem);
+            sf::CircleShape warningDot(2.5F);
+            warningDot.setPosition({CombatSystem::mowerStartX + 21.5F, laneTop + 35.0F});
+            warningDot.setFillColor(sf::Color::White);
+            window.draw(warningDot);
             continue;
         }
         sf::RectangleShape body({48.0F, 34.0F});
@@ -286,7 +349,13 @@ void GameScreen::drawCombat(sf::RenderWindow& window) const {
         const float top = BoardGeometry::cellTop(zombie->row()) + 10.0F;
         sf::RectangleShape body({CombatSystem::zombieWidth, 80.0F});
         body.setPosition({zombie->x(), top});
-        body.setFillColor({105, 125, 91});
+        sf::Color bodyColor{105, 125, 91};
+        if (zombie->type() == ZombieType::Conehead) {
+            bodyColor = {152, 118, 65};
+        } else if (zombie->type() == ZombieType::Buckethead) {
+            bodyColor = {98, 111, 116};
+        }
+        body.setFillColor(bodyColor);
         body.setOutlineColor({48, 61, 42});
         body.setOutlineThickness(3.0F);
         window.draw(body);
@@ -302,6 +371,15 @@ void GameScreen::drawCombat(sf::RenderWindow& window) const {
             {zombie->x(), top - 14.0F},
             CombatSystem::zombieWidth
         );
+        if (zombie->maxArmor() > 0) {
+            drawHealthBar(
+                window,
+                static_cast<float>(zombie->armor()) /
+                    static_cast<float>(zombie->maxArmor()),
+                {zombie->x(), top - 7.0F},
+                CombatSystem::zombieWidth
+            );
+        }
     }
 }
 
@@ -415,9 +493,39 @@ void GameScreen::drawToolbar(sf::RenderWindow& window) const {
     if (shovelLoaded_) {
         sf::Sprite shovel(shovelTexture_);
         fitSprite(shovel, {52.0F, 52.0F});
-        shovel.setPosition({291.0F, 19.0F});
+        shovel.setPosition({shovelBounds.position.x + 5.0F, shovelBounds.position.y + 4.0F});
         window.draw(shovel);
     }
+
+    drawButton(window, almanacBounds, {73, 91, 55, 225});
+    sf::RectangleShape bookLeft({25.0F, 26.0F});
+    bookLeft.setPosition({799.0F, 26.0F});
+    bookLeft.setFillColor({238, 222, 160});
+    bookLeft.setOutlineColor({77, 52, 31});
+    bookLeft.setOutlineThickness(2.0F);
+    window.draw(bookLeft);
+    sf::RectangleShape bookRight({25.0F, 26.0F});
+    bookRight.setPosition({826.0F, 26.0F});
+    bookRight.setFillColor({238, 222, 160});
+    bookRight.setOutlineColor({77, 52, 31});
+    bookRight.setOutlineThickness(2.0F);
+    window.draw(bookRight);
+
+    sf::RectangleShape wavePanel({88.0F, 42.0F});
+    wavePanel.setPosition({680.0F, 18.0F});
+    wavePanel.setFillColor(session_.level().finalWaveStarted()
+                               ? sf::Color(145, 52, 38, 225)
+                               : sf::Color(58, 80, 43, 225));
+    wavePanel.setOutlineColor({229, 198, 113});
+    wavePanel.setOutlineThickness(2.0F);
+    window.draw(wavePanel);
+    drawNumber(window, session_.level().currentWave(), {696.0F, 28.0F});
+    sf::RectangleShape separator({12.0F, 2.0F});
+    separator.setPosition({720.0F, 39.0F});
+    separator.setRotation(sf::degrees(-55.0F));
+    separator.setFillColor({255, 236, 125});
+    window.draw(separator);
+    drawNumber(window, LevelSystem::waveCount(), {742.0F, 28.0F});
 
     drawButton(window, pauseBounds, {58, 80, 43, 225});
     if (session_.isPaused()) {

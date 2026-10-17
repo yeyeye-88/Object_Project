@@ -55,5 +55,24 @@ int main() {
     mowerCombat.spawnNormalZombie(0, CombatSystem::defenseLineX - 1.0F);
     mowerCombat.update(0.1F, emptyBoard, emptySuns);
     passed &= check(mowerCombat.breached(), "second breach in same row causes defeat condition");
+
+    CombatSystem repeaterCombat;
+    Board repeaterBoard;
+    SunSystem repeaterSuns(11U);
+    repeaterBoard.place({2, 0}, PlantType::Repeater);
+    repeaterCombat.spawnZombie(ZombieType::Conehead, 2, 800.0F);
+    repeaterCombat.update(Repeater::attackIntervalSeconds, repeaterBoard, repeaterSuns);
+    passed &= check(repeaterCombat.projectiles().size() == 2, "repeater fires two projectiles per attack");
+
+    CombatSystem threepeaterCombat;
+    Board threepeaterBoard;
+    SunSystem threepeaterSuns(13U);
+    threepeaterBoard.place({2, 0}, PlantType::Threepeater);
+    threepeaterCombat.spawnNormalZombie(1, 800.0F);
+    threepeaterCombat.update(Threepeater::attackIntervalSeconds, threepeaterBoard, threepeaterSuns);
+    passed &= check(
+        threepeaterCombat.projectiles().size() == 3,
+        "threepeater fires into its lane and adjacent lanes"
+    );
     return passed ? 0 : 1;
 }

@@ -10,3 +10,9 @@ M1 开发版本临时使用了本机只读课程参考项目中的视觉素材�
 
 正式发布游戏前，必须将这些文件替换为原创或许可证清晰的素材，或者补充相关权利方
 的使用许可记录。
+
+## Tuffy 字体
+
+M3 图鉴使用 `assets/fonts/tuffy.ttf`。该字体来自 SFML 3.1.0 示例资源，作者为
+Thatcher Ulrich；SFML 的 `examples/asset_licenses.md` 将 Tuffy 1.1/1.28 标记为
+公共领域（CC0）资源。字体只用于渲染图鉴中的英文标题、数值和说明。

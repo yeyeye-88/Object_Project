@@ -1,0 +1,31 @@
+#include "game/AlmanacData.hpp"
+
+namespace object_project {
+
+namespace {
+
+constexpr std::array<AlmanacEntry, plantTypeCount> plantEntries{{
+    {"SUNFLOWER", "RESOURCE", "COST 50   HP 100", "PRODUCES 25 SUN EVERY 8 SECONDS.", "BUILD EARLY TO SUPPORT EXPENSIVE CARDS."},
+    {"PEASHOOTER", "BASIC DAMAGE", "COST 100  HP 100", "FIRES ONE PEA AT ITS OWN LANE.", "PLACE BEHIND DEFENSIVE PLANTS."},
+    {"WALL-NUT", "DEFENSE", "COST 50   HP 500", "BLOCKS ZOMBIES WITH HIGH HEALTH.", "USE IT TO BUY TIME FOR SHOOTERS."},
+    {"REPEATER", "STRONG DAMAGE", "COST 200  HP 100", "FIRES TWO PEAS EACH ATTACK.", "FOCUS IT ON ARMORED ZOMBIES."},
+    {"THREEPEATER", "MULTI-LANE", "COST 325  HP 100", "FIRES INTO ITS LANE AND BOTH NEIGHBORS.", "THE MIDDLE LANES GIVE THE BEST COVERAGE."},
+}};
+
+constexpr std::array<AlmanacEntry, zombieTypeCount> zombieEntries{{
+    {"NORMAL ZOMBIE", "BASIC ENEMY", "HP 100   ARMOR 0", "WALKS AND BITES PLANTS.", "ONE SHOOTER CAN HANDLE IT WITH ENOUGH TIME."},
+    {"CONEHEAD ZOMBIE", "LIGHT ARMOR", "HP 100   ARMOR 100", "ITS CONE ABSORBS DAMAGE BEFORE HEALTH.", "USE CONCENTRATED FIRE OR A REPEATER."},
+    {"BUCKETHEAD ZOMBIE", "HEAVY ARMOR", "HP 100   ARMOR 220", "A TOUGH BUCKET ABSORBS HEAVY DAMAGE.", "STALL IT WITH A WALL-NUT AND FOCUS FIRE."},
+}};
+
+}  // namespace
+
+const AlmanacEntry& plantAlmanacEntry(const PlantType type) {
+    return plantEntries[toIndex(type)];
+}
+
+const AlmanacEntry& zombieAlmanacEntry(const ZombieType type) {
+    return zombieEntries[static_cast<std::size_t>(type)];
+}
+
+}  // namespace object_project

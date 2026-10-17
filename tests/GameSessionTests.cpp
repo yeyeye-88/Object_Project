@@ -63,7 +63,7 @@ int main() {
     );
 
     GameSession winningSession;
-    for (int step = 0; step < 500 && winningSession.state() == GameState::Running; ++step) {
+    for (int step = 0; step < 600 && winningSession.state() == GameState::Running; ++step) {
         winningSession.update(0.1F);
         for (const auto& zombie : winningSession.combat().zombies()) {
             zombie->takeDamage(zombie->health());

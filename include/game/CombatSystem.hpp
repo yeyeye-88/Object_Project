@@ -43,7 +43,15 @@ public:
 
     CombatSystem();
 
-    Zombie& spawnNormalZombie(int row, float x = BoardGeometry::left + BoardGeometry::columns * BoardGeometry::cellWidth);
+    Zombie& spawnZombie(
+        ZombieType type,
+        int row,
+        float x = BoardGeometry::left + BoardGeometry::columns * BoardGeometry::cellWidth
+    );
+    Zombie& spawnNormalZombie(
+        int row,
+        float x = BoardGeometry::left + BoardGeometry::columns * BoardGeometry::cellWidth
+    );
     void update(float deltaSeconds, Board& board, SunSystem& suns);
     void reset();
 

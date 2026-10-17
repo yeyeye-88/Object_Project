@@ -8,6 +8,8 @@ enum class PlantType : std::size_t {
     Sunflower = 0,
     Peashooter,
     WallNut,
+    Repeater,
+    Threepeater,
     Count,
 };
 

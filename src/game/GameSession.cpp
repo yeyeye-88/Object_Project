@@ -8,8 +8,8 @@ void GameSession::update(const float deltaSeconds) {
     }
     cards_.update(deltaSeconds);
     suns_.update(deltaSeconds);
-    for (const int row : level_.update(deltaSeconds)) {
-        combat_.spawnNormalZombie(row);
+    for (const SpawnEvent& event : level_.update(deltaSeconds)) {
+        combat_.spawnZombie(event.type, event.row);
     }
     combat_.update(deltaSeconds, board_, suns_);
 

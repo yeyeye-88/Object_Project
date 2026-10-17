@@ -28,9 +28,17 @@ CombatSystem::CombatSystem() {
     reset();
 }
 
-Zombie& CombatSystem::spawnNormalZombie(const int row, const float x) {
-    zombies_.push_back(std::make_unique<NormalZombie>(row, x));
+Zombie& CombatSystem::spawnZombie(
+    const ZombieType type,
+    const int row,
+    const float x
+) {
+    zombies_.push_back(createZombie(type, row, x));
     return *zombies_.back();
+}
+
+Zombie& CombatSystem::spawnNormalZombie(const int row, const float x) {
+    return spawnZombie(ZombieType::Normal, row, x);
 }
 
 void CombatSystem::update(
@@ -83,14 +91,29 @@ void CombatSystem::updatePlants(
             }
 
             const float originX = BoardGeometry::cellLeft(column) + BoardGeometry::cellWidth * 0.72F;
+            bool enemyAhead = hasZombieAhead(row, originX);
+            if (plant->type() == PlantType::Threepeater) {
+                enemyAhead = enemyAhead ||
+                    (row > 0 && hasZombieAhead(row - 1, originX)) ||
+                    (row + 1 < BoardGeometry::rows && hasZombieAhead(row + 1, originX));
+            }
             const auto action = plant->update(
                 deltaSeconds,
-                hasZombieAhead(row, originX)
+                enemyAhead
             );
             if (action == PlantAction::ProduceSun) {
                 suns.spawnFromPlant(plant->position());
             } else if (action == PlantAction::FirePea) {
                 projectiles_.push_back({nextProjectileId_++, row, originX, projectileDamage});
+            } else if (action == PlantAction::FireDoublePea) {
+                projectiles_.push_back({nextProjectileId_++, row, originX, projectileDamage});
+                projectiles_.push_back({nextProjectileId_++, row, originX - 14.0F, projectileDamage});
+            } else if (action == PlantAction::FireThreeRows) {
+                for (int targetRow = row - 1; targetRow <= row + 1; ++targetRow) {
+                    if (targetRow >= 0 && targetRow < BoardGeometry::rows) {
+                        projectiles_.push_back({nextProjectileId_++, targetRow, originX, projectileDamage});
+                    }
+                }
             }
         }
     }
@@ -112,7 +135,7 @@ void CombatSystem::updateProjectiles(const float deltaSeconds) {
             }
         }
         if (target != nullptr) {
-            target->takeDamage(projectile.damage);
+            target->receiveDamage(projectile.damage);
             projectile.damage = 0;
         }
     }
@@ -183,7 +206,7 @@ void CombatSystem::updateMowers(const float deltaSeconds) {
                 if (!zombie->isDead() && zombie->row() == mower.row &&
                     zombie->x() <= mower.x + mowerWidth &&
                     zombie->x() + zombieWidth >= mower.x) {
-                    zombie->takeDamage(zombie->health());
+                    zombie->receiveDamage(zombie->armor() + zombie->health());
                 }
             }
             if (mower.x > rightEdge) {

@@ -54,6 +54,42 @@ std::optional<PlantAction> WallNut::update(
     return std::nullopt;
 }
 
+Repeater::Repeater(const GridPosition position)
+    : Plant(PlantType::Repeater, position, maximumHealth) {}
+
+std::optional<PlantAction> Repeater::update(
+    const float deltaSeconds,
+    const bool enemyAhead
+) {
+    if (deltaSeconds <= 0.0F || !enemyAhead) {
+        return std::nullopt;
+    }
+    attackTimer_ += deltaSeconds;
+    if (attackTimer_ < attackIntervalSeconds) {
+        return std::nullopt;
+    }
+    attackTimer_ -= attackIntervalSeconds;
+    return PlantAction::FireDoublePea;
+}
+
+Threepeater::Threepeater(const GridPosition position)
+    : Plant(PlantType::Threepeater, position, maximumHealth) {}
+
+std::optional<PlantAction> Threepeater::update(
+    const float deltaSeconds,
+    const bool enemyAhead
+) {
+    if (deltaSeconds <= 0.0F || !enemyAhead) {
+        return std::nullopt;
+    }
+    attackTimer_ += deltaSeconds;
+    if (attackTimer_ < attackIntervalSeconds) {
+        return std::nullopt;
+    }
+    attackTimer_ -= attackIntervalSeconds;
+    return PlantAction::FireThreeRows;
+}
+
 std::unique_ptr<Plant> createPlant(const PlantType type, const GridPosition position) {
     switch (type) {
         case PlantType::Sunflower:
@@ -62,6 +98,10 @@ std::unique_ptr<Plant> createPlant(const PlantType type, const GridPosition posi
             return std::make_unique<Peashooter>(position);
         case PlantType::WallNut:
             return std::make_unique<WallNut>(position);
+        case PlantType::Repeater:
+            return std::make_unique<Repeater>(position);
+        case PlantType::Threepeater:
+            return std::make_unique<Threepeater>(position);
         case PlantType::Count:
             break;
     }

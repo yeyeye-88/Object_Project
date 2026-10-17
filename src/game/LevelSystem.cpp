@@ -2,24 +2,26 @@
 
 namespace object_project {
 
-std::vector<int> LevelSystem::update(const float deltaSeconds) {
-    std::vector<int> rows;
+std::vector<SpawnEvent> LevelSystem::update(const float deltaSeconds) {
+    std::vector<SpawnEvent> events;
     if (deltaSeconds <= 0.0F) {
-        return rows;
+        return events;
     }
 
     elapsedSeconds_ += deltaSeconds;
     while (nextSpawn_ < schedule_.size() &&
            elapsedSeconds_ >= schedule_[nextSpawn_].timeSeconds) {
-        rows.push_back(schedule_[nextSpawn_].row);
+        events.push_back(schedule_[nextSpawn_]);
+        currentWave_ = schedule_[nextSpawn_].wave;
         ++nextSpawn_;
     }
-    return rows;
+    return events;
 }
 
 void LevelSystem::reset() {
     elapsedSeconds_ = 0.0F;
     nextSpawn_ = 0;
+    currentWave_ = 1;
 }
 
 }  // namespace object_project

@@ -30,6 +30,7 @@ FetchContent_MakeAvailable(SFML)
 
 add_library(object_project_core
     src/core/AppConfig.cpp
+    src/game/AlmanacData.cpp
     src/game/Board.cpp
     src/game/CardSystem.cpp
     src/game/CombatSystem.cpp
@@ -44,6 +45,7 @@ target_compile_features(object_project_core PUBLIC cxx_std_17)
 
 add_executable(pvz_game
     src/main.cpp
+    src/ui/AlmanacScreen.cpp
     src/ui/GameScreen.cpp
 )
 target_link_libraries(pvz_game PRIVATE object_project_core SFML::Graphics)
@@ -76,6 +78,8 @@ if(BUILD_TESTING)
     add_executable(plant_tests tests/PlantTests.cpp)
     add_executable(level_system_tests tests/LevelSystemTests.cpp)
     add_executable(combat_system_tests tests/CombatSystemTests.cpp)
+    add_executable(zombie_tests tests/ZombieTests.cpp)
+    add_executable(almanac_data_tests tests/AlmanacDataTests.cpp)
 
     foreach(test_target IN ITEMS
         app_config_tests
@@ -86,6 +90,8 @@ if(BUILD_TESTING)
         plant_tests
         level_system_tests
         combat_system_tests
+        zombie_tests
+        almanac_data_tests
     )
         target_link_libraries(${test_target} PRIVATE object_project_core)
         if(MSVC)

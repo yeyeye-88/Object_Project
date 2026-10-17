@@ -42,5 +42,17 @@ int main() {
     );
     wallNut.takeDamage(100);
     passed &= check(wallNut.health() == WallNut::maximumHealth - 100, "damage reduces plant health");
+
+    Repeater repeater({2, 2});
+    passed &= check(
+        repeater.update(Repeater::attackIntervalSeconds, true) == PlantAction::FireDoublePea,
+        "repeater requests a double shot"
+    );
+
+    Threepeater threepeater({2, 2});
+    passed &= check(
+        threepeater.update(Threepeater::attackIntervalSeconds, true) == PlantAction::FireThreeRows,
+        "threepeater requests a three-lane shot"
+    );
     return passed ? 0 : 1;
 }
