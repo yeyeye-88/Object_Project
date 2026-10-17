@@ -11,7 +11,7 @@
 int main() {
     const std::string title = object_project::loadWindowTitle(
         std::filesystem::path{"assets/config/window_title.txt"},
-        "Object Project - M3 Course Requirements"
+        "Object Project - M4 Rich Gameplay"
     );
 
     sf::RenderWindow window(sf::VideoMode({960, 600}), title);

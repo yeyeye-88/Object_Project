@@ -10,6 +10,8 @@ enum class PlantType : std::size_t {
     WallNut,
     Repeater,
     Threepeater,
+    SnowPea,
+    TallNut,
     Count,
 };
 

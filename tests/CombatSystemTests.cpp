@@ -107,5 +107,21 @@ int main() {
         centerTarget.armor() == armorBeforeDelay - 40 && effectCombat.delayedAreaDamages().empty(),
         "delayed area damage triggers once and is removed"
     );
+
+    CombatSystem snowCombat;
+    Board snowBoard;
+    SunSystem snowSuns(17U);
+    snowBoard.place({1, 0}, PlantType::SnowPea);
+    Zombie& snowTarget = snowCombat.spawnNormalZombie(1, 500.0F);
+    snowCombat.update(SnowPea::attackIntervalSeconds, snowBoard, snowSuns);
+    passed &= check(
+        snowCombat.projectiles().size() == 1 &&
+            snowCombat.projectiles().front().type == Projectile::Type::FrozenPea,
+        "snow pea launches a frozen projectile"
+    );
+    for (int step = 0; step < 20 && !snowTarget.isSlowed(); ++step) {
+        snowCombat.update(0.1F, snowBoard, snowSuns);
+    }
+    passed &= check(snowTarget.isSlowed(), "snow pea projectile slows a zombie on hit");
     return passed ? 0 : 1;
 }

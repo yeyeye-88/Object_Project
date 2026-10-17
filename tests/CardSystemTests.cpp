@@ -24,6 +24,8 @@ int main() {
     passed &= check(cards.definition(PlantType::Sunflower).cost == 50, "sunflower costs 50 sun");
     passed &= check(cards.definition(PlantType::Repeater).cost == 200, "repeater costs 200 sun");
     passed &= check(cards.definition(PlantType::Threepeater).cost == 325, "threepeater costs 325 sun");
+    passed &= check(cards.definition(PlantType::SnowPea).cost == 175, "snow pea costs 175 sun");
+    passed &= check(cards.definition(PlantType::TallNut).cost == 125, "tall-nut costs 125 sun");
     passed &= check(!cards.isCoolingDown(PlantType::Peashooter), "cards start ready");
     cards.startCooldown(PlantType::Peashooter);
     passed &= check(cards.isCoolingDown(PlantType::Peashooter), "planting starts cooldown");

@@ -54,5 +54,17 @@ int main() {
         threepeater.update(Threepeater::attackIntervalSeconds, true) == PlantAction::FireThreeRows,
         "threepeater requests a three-lane shot"
     );
+
+    SnowPea snowPea({1, 3});
+    passed &= check(
+        snowPea.update(SnowPea::attackIntervalSeconds, true) == PlantAction::FireFrozenPea,
+        "snow pea requests a frozen shot"
+    );
+
+    TallNut tallNut({2, 4});
+    passed &= check(
+        tallNut.maxHealth() > wallNut.maxHealth() && tallNut.blocksVaulting(),
+        "tall-nut has heavy health and blocks vaulting"
+    );
     return passed ? 0 : 1;
 }

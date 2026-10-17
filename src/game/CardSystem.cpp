@@ -10,6 +10,8 @@ CardSystem::CardSystem() {
     definitions_[toIndex(PlantType::WallNut)] = {50, 30.0F};
     definitions_[toIndex(PlantType::Repeater)] = {200, 7.5F};
     definitions_[toIndex(PlantType::Threepeater)] = {325, 7.5F};
+    definitions_[toIndex(PlantType::SnowPea)] = {175, 7.5F};
+    definitions_[toIndex(PlantType::TallNut)] = {125, 30.0F};
 }
 
 const CardDefinition& CardSystem::definition(const PlantType type) const {

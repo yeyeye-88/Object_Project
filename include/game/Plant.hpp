@@ -14,6 +14,7 @@ enum class PlantAction {
     FirePea,
     FireDoublePea,
     FireThreeRows,
+    FireFrozenPea,
 };
 
 class Plant : public Entity {
@@ -23,6 +24,7 @@ public:
 
     PlantType type() const { return type_; }
     GridPosition position() const { return position_; }
+    virtual bool blocksVaulting() const { return false; }
     virtual std::optional<PlantAction> update(float deltaSeconds, bool enemyAhead) = 0;
 
 private:
@@ -84,6 +86,27 @@ public:
 
 private:
     float attackTimer_{};
+};
+
+class SnowPea final : public Plant {
+public:
+    static constexpr int maximumHealth = 100;
+    static constexpr float attackIntervalSeconds = 1.5F;
+
+    explicit SnowPea(GridPosition position);
+    std::optional<PlantAction> update(float deltaSeconds, bool enemyAhead) override;
+
+private:
+    float attackTimer_{};
+};
+
+class TallNut final : public Plant {
+public:
+    static constexpr int maximumHealth = 900;
+
+    explicit TallNut(GridPosition position);
+    bool blocksVaulting() const override { return true; }
+    std::optional<PlantAction> update(float deltaSeconds, bool enemyAhead) override;
 };
 
 std::unique_ptr<Plant> createPlant(PlantType type, GridPosition position);

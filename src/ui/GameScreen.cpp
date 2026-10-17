@@ -50,11 +50,15 @@ GameScreen::GameScreen(GameSession& session) : session_(session) {
         "assets/cards/wallnut.png",
         "",
         "",
+        "",
+        "",
     };
     const std::array<std::string, plantTypeCount> plantPaths{
         "assets/plants/sunflower/idle.png",
         "assets/plants/peashooter/idle.png",
         "assets/plants/wallnut/idle.png",
+        "",
+        "",
         "",
         "",
     };
@@ -77,6 +81,8 @@ const std::array<GameScreen::CardLayout, plantTypeCount>& GameScreen::cardLayout
         {PlantType::WallNut, {210.0F, 8.0F}},
         {PlantType::Repeater, {274.0F, 8.0F}},
         {PlantType::Threepeater, {338.0F, 8.0F}},
+        {PlantType::SnowPea, {402.0F, 8.0F}},
+        {PlantType::TallNut, {466.0F, 8.0F}},
     }};
     return layouts;
 }
@@ -93,6 +99,10 @@ sf::Color GameScreen::plantColor(const PlantType type, const std::uint8_t alpha)
             return {40, 140, 70, alpha};
         case PlantType::Threepeater:
             return {80, 190, 120, alpha};
+        case PlantType::SnowPea:
+            return {92, 190, 225, alpha};
+        case PlantType::TallNut:
+            return {116, 72, 43, alpha};
         case PlantType::Count:
             break;
     }

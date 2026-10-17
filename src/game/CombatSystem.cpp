@@ -156,6 +156,8 @@ void CombatSystem::updatePlants(
                         launchProjectile(Projectile::Type::Pea, targetRow, originX);
                     }
                 }
+            } else if (action == PlantAction::FireFrozenPea) {
+                launchProjectile(Projectile::Type::FrozenPea, row, originX);
             }
         }
     }
