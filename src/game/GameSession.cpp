@@ -2,6 +2,9 @@
 
 namespace object_project {
 
+GameSession::GameSession(const LevelId levelId)
+    : sun_(levelDefinition(levelId).initialSun), level_(levelId) {}
+
 void GameSession::update(const float deltaSeconds) {
     if (state_ != GameState::Running || deltaSeconds <= 0.0F) {
         return;
@@ -35,6 +38,9 @@ PlacementResult GameSession::placementStatus(
     }
     if (board_.isOccupied(position)) {
         return PlacementResult::Occupied;
+    }
+    if (!isPlantAvailable(type)) {
+        return PlacementResult::PlantUnavailable;
     }
     if (cards_.isCoolingDown(type)) {
         return PlacementResult::CardCoolingDown;
@@ -83,9 +89,14 @@ void GameSession::togglePause() {
     }
 }
 
+void GameSession::startLevel(const LevelId levelId) {
+    level_.selectLevel(levelId);
+    restart();
+}
+
 void GameSession::restart() {
     state_ = GameState::Running;
-    sun_ = initialSun;
+    sun_ = level_.definition().initialSun;
     board_.reset();
     cards_.reset();
     suns_.reset();

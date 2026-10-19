@@ -70,5 +70,22 @@ int main() {
         }
     }
     passed &= check(winningSession.state() == GameState::Won, "clearing final zombie wins the level");
+
+    GameSession tutorialSession(LevelId::Tutorial);
+    passed &= check(
+        tutorialSession.sun() == levelDefinition(LevelId::Tutorial).initialSun,
+        "session uses the selected level initial sun"
+    );
+    passed &= check(
+        tutorialSession.tryPlace(PlantType::CherryBomb, {0, 0}) ==
+            PlacementResult::PlantUnavailable,
+        "level restrictions reject unavailable plants"
+    );
+    tutorialSession.startLevel(LevelId::NightChallenge);
+    passed &= check(
+        tutorialSession.level().levelId() == LevelId::NightChallenge &&
+            tutorialSession.sun() == levelDefinition(LevelId::NightChallenge).initialSun,
+        "starting another level resets the session with its configuration"
+    );
     return passed ? 0 : 1;
 }

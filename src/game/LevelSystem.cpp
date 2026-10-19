@@ -2,6 +2,9 @@
 
 namespace object_project {
 
+LevelSystem::LevelSystem(const LevelId levelId)
+    : definition_(&levelDefinition(levelId)) {}
+
 std::vector<SpawnEvent> LevelSystem::update(const float deltaSeconds) {
     std::vector<SpawnEvent> events;
     if (deltaSeconds <= 0.0F) {
@@ -9,13 +12,19 @@ std::vector<SpawnEvent> LevelSystem::update(const float deltaSeconds) {
     }
 
     elapsedSeconds_ += deltaSeconds;
-    while (nextSpawn_ < schedule_.size() &&
-           elapsedSeconds_ >= schedule_[nextSpawn_].timeSeconds) {
-        events.push_back(schedule_[nextSpawn_]);
-        currentWave_ = schedule_[nextSpawn_].wave;
+    const auto& schedule = definition().schedule;
+    while (nextSpawn_ < schedule.size() &&
+           elapsedSeconds_ >= schedule[nextSpawn_].timeSeconds) {
+        events.push_back(schedule[nextSpawn_]);
+        currentWave_ = schedule[nextSpawn_].wave;
         ++nextSpawn_;
     }
     return events;
+}
+
+void LevelSystem::selectLevel(const LevelId levelId) {
+    definition_ = &levelDefinition(levelId);
+    reset();
 }
 
 void LevelSystem::reset() {

@@ -199,5 +199,40 @@ int main() {
             frozenTorchCombat.projectiles().front().damage == CombatSystem::projectileDamage,
         "torchwood does not transform frozen peas"
     );
+
+    CombatSystem vaultCombat;
+    Board vaultBoard;
+    SunSystem vaultSuns(27U);
+    vaultBoard.place({2, 4}, PlantType::WallNut);
+    Plant* vaultedPlant = vaultBoard.plantAt({2, 4});
+    Zombie& vaulter = vaultCombat.spawnZombie(
+        ZombieType::PoleVaulting,
+        2,
+        BoardGeometry::cellLeft(4) + 20.0F
+    );
+    const int vaultedHealth = vaultedPlant->health();
+    vaultCombat.update(0.1F, vaultBoard, vaultSuns);
+    passed &= check(
+        !vaulter.canVault() && vaultedPlant->health() == vaultedHealth &&
+            vaulter.x() < BoardGeometry::cellLeft(4),
+        "pole-vaulting zombie jumps over its first ordinary plant"
+    );
+
+    CombatSystem tallNutCombat;
+    Board tallNutBoard;
+    SunSystem tallNutSuns(29U);
+    tallNutBoard.place({2, 4}, PlantType::TallNut);
+    Plant* blockingTallNut = tallNutBoard.plantAt({2, 4});
+    Zombie& blockedVaulter = tallNutCombat.spawnZombie(
+        ZombieType::PoleVaulting,
+        2,
+        BoardGeometry::cellLeft(4) + 20.0F
+    );
+    tallNutCombat.update(PoleVaultingZombie::attackInterval, tallNutBoard, tallNutSuns);
+    passed &= check(
+        blockedVaulter.canVault() &&
+            blockingTallNut->health() == TallNut::maximumHealth - PoleVaultingZombie::damage,
+        "tall-nut blocks vaulting and is attacked instead"
+    );
     return passed ? 0 : 1;
 }

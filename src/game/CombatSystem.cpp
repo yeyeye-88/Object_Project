@@ -309,6 +309,12 @@ void CombatSystem::updateZombies(const float deltaSeconds, Board& board) {
         if (blockingPlant == nullptr) {
             zombie->updateAttack(deltaSeconds, false);
             zombie->move(deltaSeconds);
+        } else if (zombie->canVault() && !blockingPlant->blocksVaulting()) {
+            zombie->setX(
+                plantLeft(blockingPlant->position()) - zombieWidth - 2.0F
+            );
+            zombie->useVault();
+            zombie->updateAttack(deltaSeconds, false);
         } else if (zombie->updateAttack(deltaSeconds, true)) {
             blockingPlant->takeDamage(zombie->attackDamage());
         }

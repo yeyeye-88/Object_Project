@@ -17,6 +17,8 @@ public:
     void handleEvent(const sf::Event& event, const sf::RenderWindow& window);
     void draw(sf::RenderWindow& window) const;
     bool takeAlmanacRequest();
+    bool takeMenuRequest();
+    void resetInteraction();
 
 private:
     struct CardLayout {
@@ -30,6 +32,7 @@ private:
     static constexpr sf::FloatRect pauseBounds{{874.0F, 18.0F}, {54.0F, 42.0F}};
     static constexpr sf::FloatRect resumeBounds{{365.0F, 260.0F}, {100.0F, 60.0F}};
     static constexpr sf::FloatRect restartBounds{{495.0F, 260.0F}, {100.0F, 60.0F}};
+    static constexpr sf::FloatRect menuBounds{{430.0F, 340.0F}, {130.0F, 52.0F}};
 
     static const std::array<CardLayout, plantTypeCount>& cardLayouts();
     static sf::Color plantColor(PlantType type, std::uint8_t alpha = 255);
@@ -51,6 +54,7 @@ private:
     std::optional<PlantType> selectedPlant_;
     bool shovelSelected_{};
     bool almanacRequested_{};
+    bool menuRequested_{};
     std::optional<GridPosition> hoveredCell_;
 
     sf::Texture backgroundTexture_;

@@ -130,6 +130,20 @@ bool GameScreen::takeAlmanacRequest() {
     return requested;
 }
 
+bool GameScreen::takeMenuRequest() {
+    const bool requested = menuRequested_;
+    menuRequested_ = false;
+    return requested;
+}
+
+void GameScreen::resetInteraction() {
+    selectedPlant_.reset();
+    shovelSelected_ = false;
+    hoveredCell_.reset();
+    almanacRequested_ = false;
+    menuRequested_ = false;
+}
+
 void GameScreen::handleEvent(
     const sf::Event& event,
     const sf::RenderWindow& window
@@ -184,6 +198,8 @@ void GameScreen::handleLeftClick(const sf::Vector2f position) {
             session_.restart();
             selectedPlant_.reset();
             shovelSelected_ = false;
+        } else if (contains(menuBounds, position)) {
+            menuRequested_ = true;
         }
         return;
     }
@@ -193,6 +209,8 @@ void GameScreen::handleLeftClick(const sf::Vector2f position) {
             session_.restart();
             selectedPlant_.reset();
             shovelSelected_ = false;
+        } else if (contains(menuBounds, position)) {
+            menuRequested_ = true;
         }
         return;
     }
@@ -385,6 +403,14 @@ void GameScreen::drawCombat(sf::RenderWindow& window) const {
             bodyColor = {152, 118, 65};
         } else if (zombie->type() == ZombieType::Buckethead) {
             bodyColor = {98, 111, 116};
+        } else if (zombie->type() == ZombieType::Flag) {
+            bodyColor = {150, 62, 58};
+        } else if (zombie->type() == ZombieType::PoleVaulting) {
+            bodyColor = {91, 80, 139};
+        } else if (zombie->type() == ZombieType::Newspaper) {
+            bodyColor = zombie->isEnraged()
+                ? sf::Color(190, 62, 48)
+                : sf::Color(125, 126, 100);
         }
         if (zombie->isSlowed()) {
             bodyColor = sf::Color(
@@ -402,6 +428,29 @@ void GameScreen::drawCombat(sf::RenderWindow& window) const {
         head.setPosition({zombie->x() + 7.0F, top - 8.0F});
         head.setFillColor({150, 165, 130});
         window.draw(head);
+        if (zombie->type() == ZombieType::Flag) {
+            sf::RectangleShape pole({3.0F, 75.0F});
+            pole.setPosition({zombie->x() + 41.0F, top - 20.0F});
+            pole.setFillColor({82, 54, 38});
+            window.draw(pole);
+            sf::RectangleShape flag({30.0F, 20.0F});
+            flag.setPosition({zombie->x() + 44.0F, top - 18.0F});
+            flag.setFillColor({205, 45, 40});
+            window.draw(flag);
+        } else if (zombie->type() == ZombieType::PoleVaulting && zombie->canVault()) {
+            sf::RectangleShape pole({78.0F, 4.0F});
+            pole.setPosition({zombie->x() - 15.0F, top + 38.0F});
+            pole.setRotation(sf::degrees(-12.0F));
+            pole.setFillColor({128, 86, 49});
+            window.draw(pole);
+        } else if (zombie->type() == ZombieType::Newspaper && !zombie->isEnraged()) {
+            sf::RectangleShape paper({38.0F, 28.0F});
+            paper.setPosition({zombie->x() + 4.0F, top + 38.0F});
+            paper.setFillColor({225, 218, 188});
+            paper.setOutlineColor({75, 70, 58});
+            paper.setOutlineThickness(2.0F);
+            window.draw(paper);
+        }
         drawHealthBar(
             window,
             static_cast<float>(zombie->health()) /
@@ -487,7 +536,8 @@ void GameScreen::drawCards(sf::RenderWindow& window) const {
 
         const float cooldown = session_.cards().cooldownProgress(layout.type);
         const bool unaffordable = session_.sun() < session_.cards().definition(layout.type).cost;
-        if (cooldown > 0.0F || unaffordable) {
+        const bool unavailable = !session_.isPlantAvailable(layout.type);
+        if (cooldown > 0.0F || unaffordable || unavailable) {
             const float maskHeight = cooldown > 0.0F ? cardSize.y * cooldown : cardSize.y;
             sf::RectangleShape mask({cardSize.x, maskHeight});
             mask.setPosition(layout.position);
@@ -495,7 +545,7 @@ void GameScreen::drawCards(sf::RenderWindow& window) const {
                 20,
                 20,
                 20,
-                static_cast<std::uint8_t>(unaffordable ? 155 : 115),
+                static_cast<std::uint8_t>(unavailable ? 205 : (unaffordable ? 155 : 115)),
             });
             window.draw(mask);
         }
@@ -563,7 +613,7 @@ void GameScreen::drawToolbar(sf::RenderWindow& window) const {
     separator.setRotation(sf::degrees(-55.0F));
     separator.setFillColor({255, 236, 125});
     window.draw(separator);
-    drawNumber(window, LevelSystem::waveCount(), {742.0F, 28.0F});
+    drawNumber(window, session_.level().waveCount(), {742.0F, 28.0F});
 
     drawButton(window, pauseBounds, {58, 80, 43, 225});
     if (session_.isPaused()) {
@@ -613,6 +663,14 @@ void GameScreen::drawPauseOverlay(sf::RenderWindow& window) const {
     arrow.setPoint(2, {538.0F, 290.0F});
     arrow.setFillColor(sf::Color::White);
     window.draw(arrow);
+
+    drawButton(window, menuBounds, {67, 83, 105, 245});
+    for (int line = 0; line < 3; ++line) {
+        sf::RectangleShape bar({54.0F, 5.0F});
+        bar.setPosition({468.0F, 353.0F + static_cast<float>(line) * 12.0F});
+        bar.setFillColor(sf::Color::White);
+        window.draw(bar);
+    }
 }
 
 void GameScreen::drawResultOverlay(sf::RenderWindow& window) const {
@@ -650,6 +708,14 @@ void GameScreen::drawResultOverlay(sf::RenderWindow& window) const {
     restart.setOutlineColor(sf::Color::White);
     restart.setOutlineThickness(5.0F);
     window.draw(restart);
+
+    drawButton(window, menuBounds, {67, 83, 105, 245});
+    for (int line = 0; line < 3; ++line) {
+        sf::RectangleShape bar({54.0F, 5.0F});
+        bar.setPosition({468.0F, 353.0F + static_cast<float>(line) * 12.0F});
+        bar.setFillColor(sf::Color::White);
+        window.draw(bar);
+    }
 }
 
 void GameScreen::drawHealthBar(

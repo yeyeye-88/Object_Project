@@ -20,6 +20,7 @@ enum class PlacementResult {
     Paused,
     InvalidCell,
     Occupied,
+    PlantUnavailable,
     NotEnoughSun,
     CardCoolingDown,
     GameOver,
@@ -29,6 +30,8 @@ class GameSession {
 public:
     static constexpr int initialSun = 150;
 
+    explicit GameSession(LevelId levelId = LevelId::Garden);
+
     void update(float deltaSeconds);
     PlacementResult placementStatus(PlantType type, GridPosition position) const;
     PlacementResult tryPlace(PlantType type, GridPosition position);
@@ -36,11 +39,15 @@ public:
     bool collectSunAt(float x, float y);
 
     void togglePause();
+    void startLevel(LevelId levelId);
     void restart();
 
     GameState state() const { return state_; }
     bool isPaused() const { return state_ == GameState::Paused; }
     int sun() const { return sun_; }
+    bool isPlantAvailable(PlantType type) const {
+        return level_.definition().allowsPlant(type);
+    }
     const Board& board() const { return board_; }
     const CardSystem& cards() const { return cards_; }
     const SunSystem& suns() const { return suns_; }

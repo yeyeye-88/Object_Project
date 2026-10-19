@@ -35,6 +35,7 @@ add_library(object_project_core
     src/game/CardSystem.cpp
     src/game/CombatSystem.cpp
     src/game/GameSession.cpp
+    src/game/LevelDefinition.cpp
     src/game/LevelSystem.cpp
     src/game/Plant.cpp
     src/game/SunSystem.cpp
@@ -47,6 +48,8 @@ add_executable(pvz_game
     src/main.cpp
     src/ui/AlmanacScreen.cpp
     src/ui/GameScreen.cpp
+    src/ui/LevelSelectScreen.cpp
+    src/ui/MainMenuScreen.cpp
 )
 target_link_libraries(pvz_game PRIVATE object_project_core SFML::Graphics)
 
@@ -76,6 +79,7 @@ if(BUILD_TESTING)
     add_executable(sun_system_tests tests/SunSystemTests.cpp)
     add_executable(game_session_tests tests/GameSessionTests.cpp)
     add_executable(plant_tests tests/PlantTests.cpp)
+    add_executable(level_definition_tests tests/LevelDefinitionTests.cpp)
     add_executable(level_system_tests tests/LevelSystemTests.cpp)
     add_executable(combat_system_tests tests/CombatSystemTests.cpp)
     add_executable(zombie_tests tests/ZombieTests.cpp)
@@ -88,6 +92,7 @@ if(BUILD_TESTING)
         sun_system_tests
         game_session_tests
         plant_tests
+        level_definition_tests
         level_system_tests
         combat_system_tests
         zombie_tests

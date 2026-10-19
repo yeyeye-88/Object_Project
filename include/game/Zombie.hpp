@@ -11,6 +11,9 @@ enum class ZombieType {
     Normal,
     Conehead,
     Buckethead,
+    Flag,
+    PoleVaulting,
+    Newspaper,
     Count,
 };
 
@@ -25,6 +28,9 @@ public:
     virtual float movementSpeed() const = 0;
     virtual int attackDamage() const = 0;
     virtual float attackIntervalSeconds() const = 0;
+    virtual bool canVault() const { return false; }
+    virtual void useVault() {}
+    virtual bool isEnraged() const { return false; }
 
     int row() const { return row_; }
     float x() const { return x_; }
@@ -37,6 +43,7 @@ public:
     void applySlow(float speedMultiplier, float durationSeconds);
     void updateStatusEffects(float deltaSeconds);
     void move(float deltaSeconds);
+    void setX(float x) { x_ = x; }
     bool updateAttack(float deltaSeconds, bool blocked);
 
 private:
@@ -94,6 +101,65 @@ public:
     float movementSpeed() const override { return speed; }
     int attackDamage() const override { return damage; }
     float attackIntervalSeconds() const override { return attackInterval; }
+};
+
+class FlagZombie final : public Zombie {
+public:
+    static constexpr int maximumHealth = 120;
+    static constexpr float speed = 15.0F;
+    static constexpr int damage = 20;
+    static constexpr float attackInterval = 1.0F;
+
+    FlagZombie(int row, float x);
+
+    ZombieType type() const override { return ZombieType::Flag; }
+    float movementSpeed() const override { return speed; }
+    int attackDamage() const override { return damage; }
+    float attackIntervalSeconds() const override { return attackInterval; }
+};
+
+class PoleVaultingZombie final : public Zombie {
+public:
+    static constexpr int maximumHealth = 120;
+    static constexpr float vaultSpeed = 24.0F;
+    static constexpr float walkingSpeed = 14.0F;
+    static constexpr int damage = 20;
+    static constexpr float attackInterval = 1.0F;
+
+    PoleVaultingZombie(int row, float x);
+
+    ZombieType type() const override { return ZombieType::PoleVaulting; }
+    float movementSpeed() const override {
+        return vaultAvailable_ ? vaultSpeed : walkingSpeed;
+    }
+    int attackDamage() const override { return damage; }
+    float attackIntervalSeconds() const override { return attackInterval; }
+    bool canVault() const override { return vaultAvailable_; }
+    void useVault() override { vaultAvailable_ = false; }
+
+private:
+    bool vaultAvailable_{true};
+};
+
+class NewspaperZombie final : public Zombie {
+public:
+    static constexpr int maximumHealth = 100;
+    static constexpr int newspaperArmor = 80;
+    static constexpr float calmSpeed = 11.0F;
+    static constexpr float enragedSpeed = 22.0F;
+    static constexpr int damage = 20;
+    static constexpr float calmAttackInterval = 1.2F;
+    static constexpr float enragedAttackInterval = 0.55F;
+
+    NewspaperZombie(int row, float x);
+
+    ZombieType type() const override { return ZombieType::Newspaper; }
+    float movementSpeed() const override { return isEnraged() ? enragedSpeed : calmSpeed; }
+    int attackDamage() const override { return damage; }
+    float attackIntervalSeconds() const override {
+        return isEnraged() ? enragedAttackInterval : calmAttackInterval;
+    }
+    bool isEnraged() const override { return armor() == 0; }
 };
 
 std::unique_ptr<Zombie> createZombie(ZombieType type, int row, float x);

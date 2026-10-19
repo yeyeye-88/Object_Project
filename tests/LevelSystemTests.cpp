@@ -39,5 +39,12 @@ int main() {
         !level.allSpawned() && level.elapsedSeconds() == 0.0F && level.currentWave() == 1,
         "reset restores level schedule and wave counter"
     );
+
+    level.selectLevel(LevelId::Tutorial);
+    passed &= check(
+        level.levelId() == LevelId::Tutorial && level.waveCount() == 2 &&
+            level.totalZombieCount() == levelDefinition(LevelId::Tutorial).schedule.size(),
+        "selecting a level replaces the active schedule"
+    );
     return passed ? 0 : 1;
 }

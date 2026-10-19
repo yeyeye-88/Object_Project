@@ -71,6 +71,15 @@ ConeheadZombie::ConeheadZombie(const int row, const float x)
 BucketheadZombie::BucketheadZombie(const int row, const float x)
     : Zombie(row, x, maximumHealth, maximumArmor) {}
 
+FlagZombie::FlagZombie(const int row, const float x)
+    : Zombie(row, x, maximumHealth, 0) {}
+
+PoleVaultingZombie::PoleVaultingZombie(const int row, const float x)
+    : Zombie(row, x, maximumHealth, 0) {}
+
+NewspaperZombie::NewspaperZombie(const int row, const float x)
+    : Zombie(row, x, maximumHealth, newspaperArmor) {}
+
 std::unique_ptr<Zombie> createZombie(
     const ZombieType type,
     const int row,
@@ -83,6 +92,12 @@ std::unique_ptr<Zombie> createZombie(
             return std::make_unique<ConeheadZombie>(row, x);
         case ZombieType::Buckethead:
             return std::make_unique<BucketheadZombie>(row, x);
+        case ZombieType::Flag:
+            return std::make_unique<FlagZombie>(row, x);
+        case ZombieType::PoleVaulting:
+            return std::make_unique<PoleVaultingZombie>(row, x);
+        case ZombieType::Newspaper:
+            return std::make_unique<NewspaperZombie>(row, x);
         case ZombieType::Count:
             break;
     }

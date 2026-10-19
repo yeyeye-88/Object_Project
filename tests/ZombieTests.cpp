@@ -53,5 +53,33 @@ int main() {
     );
     slowed.updateStatusEffects(3.0F);
     passed &= check(!slowed.isSlowed() && slowed.speedMultiplier() == 1.0F, "slow expires cleanly");
+
+    const auto flag = createZombie(ZombieType::Flag, 1, 600.0F);
+    passed &= check(
+        flag != nullptr && flag->type() == ZombieType::Flag,
+        "zombie factory creates a flag zombie"
+    );
+
+    PoleVaultingZombie poleVaulting(2, 600.0F);
+    passed &= check(
+        poleVaulting.canVault() && poleVaulting.movementSpeed() == PoleVaultingZombie::vaultSpeed,
+        "pole-vaulting zombie starts with its vault"
+    );
+    poleVaulting.useVault();
+    passed &= check(
+        !poleVaulting.canVault() &&
+            poleVaulting.movementSpeed() == PoleVaultingZombie::walkingSpeed,
+        "pole-vaulting zombie slows after using its vault"
+    );
+
+    NewspaperZombie newspaper(3, 600.0F);
+    const float calmSpeed = newspaper.movementSpeed();
+    const float calmAttackInterval = newspaper.attackIntervalSeconds();
+    newspaper.receiveDamage(NewspaperZombie::newspaperArmor);
+    passed &= check(
+        newspaper.isEnraged() && newspaper.movementSpeed() > calmSpeed &&
+            newspaper.attackIntervalSeconds() < calmAttackInterval,
+        "newspaper zombie enrages after its newspaper breaks"
+    );
     return passed ? 0 : 1;
 }
