@@ -8,6 +8,7 @@ enum class MainMenuAction {
     None,
     Play,
     Almanac,
+    Settings,
     Exit,
 };
 
@@ -33,12 +34,33 @@ private:
         sf::Color color = sf::Color::White
     ) const;
 
-    static constexpr sf::FloatRect playBounds{{330.0F, 230.0F}, {300.0F, 70.0F}};
-    static constexpr sf::FloatRect almanacBounds{{330.0F, 320.0F}, {300.0F, 70.0F}};
-    static constexpr sf::FloatRect exitBounds{{330.0F, 410.0F}, {300.0F, 70.0F}};
+    static constexpr sf::FloatRect playBounds{{540.0F, 105.0F}, {300.0F, 126.0F}};
+    static constexpr sf::FloatRect almanacBounds{{535.0F, 275.0F}, {145.0F, 54.0F}};
+    static constexpr sf::FloatRect settingsBounds{{700.0F, 275.0F}, {145.0F, 54.0F}};
+    static constexpr sf::FloatRect exitBounds{{618.0F, 355.0F}, {145.0F, 50.0F}};
 
     sf::Font font_;
     bool fontLoaded_{};
+    sf::Texture backgroundTexture_;
+    sf::Texture adventureTexture_;
+    sf::Texture adventureHoverTexture_;
+    sf::Texture almanacTexture_;
+    sf::Texture almanacHoverTexture_;
+    sf::Texture optionsTexture_;
+    sf::Texture optionsHoverTexture_;
+    sf::Texture quitTexture_;
+    sf::Texture quitHoverTexture_;
+    sf::Texture woodButtonTexture_;
+    bool backgroundLoaded_{};
+    bool adventureLoaded_{};
+    bool adventureHoverLoaded_{};
+    bool almanacLoaded_{};
+    bool almanacHoverLoaded_{};
+    bool optionsLoaded_{};
+    bool optionsHoverLoaded_{};
+    bool quitLoaded_{};
+    bool quitHoverLoaded_{};
+    bool woodButtonLoaded_{};
 };
 
 }  // namespace object_project

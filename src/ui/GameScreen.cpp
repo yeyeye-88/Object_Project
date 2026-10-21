@@ -1,14 +1,45 @@
 #include "ui/GameScreen.hpp"
 
 #include "game/BoardGeometry.hpp"
+#include "ui/UiText.hpp"
 
 #include <algorithm>
 #include <array>
+#include <cmath>
+#include <filesystem>
 #include <string>
 
 namespace object_project {
 
 namespace {
+
+constexpr float visualBoardLeft = 88.0F;
+constexpr float visualCellWidth = 74.0F;
+constexpr float visualScaleX = visualCellWidth / BoardGeometry::cellWidth;
+
+float boardToScreenX(const float x) {
+    return visualBoardLeft + (x - BoardGeometry::left) * visualScaleX;
+}
+
+float screenToBoardX(const float x) {
+    return BoardGeometry::left + (x - visualBoardLeft) / visualScaleX;
+}
+
+float visualCellLeft(const int column) {
+    return visualBoardLeft + static_cast<float>(column) * visualCellWidth;
+}
+
+std::optional<GridPosition> visualGridAt(const float x, const float y) {
+    if (x < visualBoardLeft || y < BoardGeometry::top ||
+        x >= visualBoardLeft + BoardGeometry::columns * visualCellWidth ||
+        y >= BoardGeometry::top + BoardGeometry::rows * BoardGeometry::cellHeight) {
+        return std::nullopt;
+    }
+    return GridPosition{
+        static_cast<int>(std::floor((y - BoardGeometry::top) / BoardGeometry::cellHeight)),
+        static_cast<int>(std::floor((x - visualBoardLeft) / visualCellWidth)),
+    };
+}
 
 bool contains(const sf::FloatRect& rectangle, const sf::Vector2f position) {
     return rectangle.contains(position);
@@ -39,34 +70,77 @@ void fitSprite(sf::Sprite& sprite, const sf::Vector2f targetSize) {
     sprite.setScale({scale, scale});
 }
 
+void placeBottomCentered(
+    sf::Sprite& sprite,
+    const sf::FloatRect bounds,
+    const sf::Vector2f maximumSize
+) {
+    fitSprite(sprite, maximumSize);
+    const sf::FloatRect local = sprite.getLocalBounds();
+    const sf::Vector2f scale = sprite.getScale();
+    const float width = local.size.x * scale.x;
+    const float height = local.size.y * scale.y;
+    sprite.setPosition({
+        bounds.position.x + (bounds.size.x - width) * 0.5F - local.position.x * scale.x,
+        bounds.position.y + bounds.size.y - height - local.position.y * scale.y,
+    });
+}
+
+std::vector<sf::Texture> loadNumberedFrames(
+    const std::filesystem::path& directory,
+    const int first,
+    const int last
+) {
+    std::vector<sf::Texture> frames;
+    frames.reserve(static_cast<std::size_t>(last - first + 1));
+    for (int number = first; number <= last; ++number) {
+        sf::Texture texture;
+        if (!texture.loadFromFile(directory / (std::to_string(number) + ".png"))) {
+            frames.clear();
+            break;
+        }
+        texture.setSmooth(true);
+        frames.push_back(std::move(texture));
+    }
+    return frames;
+}
+
 }  // namespace
 
 GameScreen::GameScreen(GameSession& session) : session_(session) {
     backgroundLoaded_ = backgroundTexture_.loadFromFile("assets/background/lawn.jpg");
 
     const std::array<std::string, plantTypeCount> cardPaths{
-        "assets/cards/sunflower.png",
-        "assets/cards/peashooter.png",
-        "assets/cards/wallnut.png",
+        "assets/pvz/cards/card_sunflower.png",
+        "assets/pvz/cards/card_peashooter.png",
+        "assets/pvz/cards/card_wallnut.png",
         "",
         "",
+        "assets/pvz/cards/card_snowpea.png",
         "",
         "",
-        "",
-        "",
+        "assets/pvz/cards/card_cherrybomb.png",
         "",
     };
     const std::array<std::string, plantTypeCount> plantPaths{
-        "assets/plants/sunflower/idle.png",
-        "assets/plants/peashooter/idle.png",
-        "assets/plants/wallnut/idle.png",
+        "assets/pvz/plants/sunflower.png",
+        "assets/pvz/plants/peashooter.png",
+        "assets/pvz/plants/wallnut.png",
+        "assets/pvz/plants/repeater.png",
         "",
+        "assets/pvz/plants/snowpea.png",
+        "assets/pvz/plants/tallnut.gif",
         "",
+        "assets/pvz/plants/cherrybomb.png",
         "",
-        "",
-        "",
-        "",
-        "",
+    };
+    const std::array<std::string, zombieTypeCount> zombiePaths{
+        "assets/pvz/zombies/normal.png",
+        "assets/pvz/zombies/conehead.png",
+        "assets/pvz/zombies/buckethead.png",
+        "assets/pvz/zombies/flag.png",
+        "assets/pvz/zombies/pole_vaulting.gif",
+        "assets/pvz/zombies/newspaper.gif",
     };
 
     for (std::size_t index = 0; index < plantTypeCount; ++index) {
@@ -75,9 +149,101 @@ GameScreen::GameScreen(GameSession& session) : session_(session) {
         plantLoaded_[index] = !plantPaths[index].empty() &&
                               plantTextures_[index].loadFromFile(plantPaths[index]);
     }
+    for (std::size_t index = 0; index < zombieTypeCount; ++index) {
+        zombieLoaded_[index] = zombieTextures_[index].loadFromFile(zombiePaths[index]);
+    }
+
+    plantAnimationFrames_[toIndex(PlantType::Sunflower)] = loadNumberedFrames(
+        "assets/pvz/animations/plants/sunflower", 0, 17
+    );
+    plantAnimationFrames_[toIndex(PlantType::Peashooter)] = loadNumberedFrames(
+        "assets/pvz/animations/plants/peashooter", 0, 12
+    );
+    plantAnimationFrames_[toIndex(PlantType::WallNut)] = loadNumberedFrames(
+        "assets/pvz/animations/plants/wallnut", 0, 15
+    );
+    plantAnimationFrames_[toIndex(PlantType::Repeater)] = loadNumberedFrames(
+        "assets/pvz/animations/plants/repeater", 0, 14
+    );
+    plantAnimationFrames_[toIndex(PlantType::Threepeater)] = loadNumberedFrames(
+        "assets/pvz/animations/plants/threepeater", 0, 15
+    );
+    plantAnimationFrames_[toIndex(PlantType::SnowPea)] = loadNumberedFrames(
+        "assets/pvz/animations/plants/snowpea", 0, 14
+    );
+    plantAnimationFrames_[toIndex(PlantType::TallNut)] = loadNumberedFrames(
+        "assets/pvz/animations/plants/tallnut", 0, 13
+    );
+    plantAnimationFrames_[toIndex(PlantType::PotatoMine)] = loadNumberedFrames(
+        "assets/pvz/animations/plants/potatomine", 0, 7
+    );
+    plantAnimationFrames_[toIndex(PlantType::CherryBomb)] = loadNumberedFrames(
+        "assets/pvz/animations/plants/cherrybomb", 0, 6
+    );
+    plantAnimationFrames_[toIndex(PlantType::Torchwood)] = loadNumberedFrames(
+        "assets/pvz/animations/plants/torchwood", 0, 8
+    );
+    zombieAnimationFrames_[static_cast<std::size_t>(ZombieType::Normal)] = loadNumberedFrames(
+        "assets/pvz/animations/zombies/normal", 0, 21
+    );
+    zombieAnimationFrames_[static_cast<std::size_t>(ZombieType::Conehead)] = loadNumberedFrames(
+        "assets/pvz/animations/zombies/conehead", 0, 20
+    );
+    zombieAnimationFrames_[static_cast<std::size_t>(ZombieType::Buckethead)] = loadNumberedFrames(
+        "assets/pvz/animations/zombies/buckethead", 0, 14
+    );
+    zombieAnimationFrames_[static_cast<std::size_t>(ZombieType::Flag)] = loadNumberedFrames(
+        "assets/pvz/animations/zombies/flag", 0, 11
+    );
+    zombieAnimationFrames_[static_cast<std::size_t>(ZombieType::PoleVaulting)] = loadNumberedFrames(
+        "assets/pvz/animations/zombies/pole_vaulting", 0, 9
+    );
+    zombieAnimationFrames_[static_cast<std::size_t>(ZombieType::Newspaper)] = loadNumberedFrames(
+        "assets/pvz/animations/zombies/newspaper", 0, 18
+    );
+    poleWalkingAnimationFrames_ = loadNumberedFrames(
+        "assets/pvz/animations/zombies/pole_walking", 0, 24
+    );
+    newspaperEnragedAnimationFrames_ = loadNumberedFrames(
+        "assets/pvz/animations/zombies/newspaper_enraged", 0, 13
+    );
+
+    const std::array<std::string, 3> threepeaterStemPaths{
+        "assets/pvz/plants/threepeater_stem1.png",
+        "assets/pvz/plants/threepeater_stem2.png",
+        "assets/pvz/plants/threepeater_stem3.png",
+    };
+    for (std::size_t index = 0; index < threepeaterStemPaths.size(); ++index) {
+        threepeaterStemLoaded_[index] = threepeaterStemTextures_[index].loadFromFile(
+            threepeaterStemPaths[index]
+        );
+    }
+    threepeaterHeadLoaded_ = threepeaterHeadTexture_.loadFromFile(
+        "assets/pvz/plants/threepeater_head.png"
+    );
+    potatoMineLoaded_ = potatoMineTexture_.loadFromFile(
+        "assets/pvz/plants/potatomine_body.png"
+    );
+    torchwoodBodyLoaded_ = torchwoodBodyTexture_.loadFromFile(
+        "assets/pvz/plants/torchwood_body.png"
+    );
+    torchwoodFireLoaded_ = torchwoodFireTexture_.loadFromFile(
+        "assets/pvz/plants/torchwood_fire.png"
+    );
 
     sunLoaded_ = sunTexture_.loadFromFile("assets/sun/sun.png");
-    shovelLoaded_ = shovelTexture_.loadFromFile("assets/ui/shovel.png");
+    shovelLoaded_ = shovelTexture_.loadFromFile("assets/pvz/ui/reference/shovel.png");
+    chooserLoaded_ = chooserTexture_.loadFromFile(
+        "assets/pvz/ui/reference/chooser_background.png"
+    );
+    shovelSlotLoaded_ = shovelSlotTexture_.loadFromFile(
+        "assets/pvz/ui/reference/shovel_slot.png"
+    );
+    mowerLoaded_ = mowerTexture_.loadFromFile("assets/pvz/ui/lawn_mower.png");
+    peaLoaded_ = peaTexture_.loadFromFile("assets/pvz/projectiles/pea.png");
+    frozenPeaLoaded_ = frozenPeaTexture_.loadFromFile("assets/pvz/projectiles/snow_pea.png");
+    feedbackFontLoaded_ = ui::loadChineseFont(feedbackFont_);
+    observedWave_ = session_.level().currentWave();
 }
 
 const std::array<GameScreen::CardLayout, plantTypeCount>& GameScreen::cardLayouts() {
@@ -136,12 +302,69 @@ bool GameScreen::takeMenuRequest() {
     return requested;
 }
 
+std::vector<SoundCue> GameScreen::takeSoundCues() {
+    std::vector<SoundCue> cues;
+    cues.swap(soundCues_);
+    return cues;
+}
+
+void GameScreen::update(const float deltaSeconds) {
+    animationTime_ += deltaSeconds;
+    waveBannerSeconds_ = std::max(0.0F, waveBannerSeconds_ - deltaSeconds);
+    for (PulseEffect& effect : pulseEffects_) {
+        effect.age += deltaSeconds;
+    }
+    pulseEffects_.erase(
+        std::remove_if(
+            pulseEffects_.begin(),
+            pulseEffects_.end(),
+            [](const PulseEffect& effect) { return effect.age >= effect.duration; }
+        ),
+        pulseEffects_.end()
+    );
+
+    const int currentWave = session_.level().currentWave();
+    if (currentWave > observedWave_) {
+        observedWave_ = currentWave;
+        waveBannerSeconds_ = 1.8F;
+        soundCues_.push_back(SoundCue::Wave);
+    }
+
+    const std::size_t projectileCount = session_.combat().projectiles().size();
+    if (projectileCount > observedProjectileCount_) {
+        soundCues_.push_back(SoundCue::Attack);
+    }
+    observedProjectileCount_ = projectileCount;
+
+    int totalHealth = 0;
+    for (int row = 0; row < BoardGeometry::rows; ++row) {
+        for (int column = 0; column < BoardGeometry::columns; ++column) {
+            if (const Plant* plant = session_.board().plantAt({row, column})) {
+                totalHealth += plant->health();
+            }
+        }
+    }
+    for (const auto& zombie : session_.combat().zombies()) {
+        totalHealth += zombie->health() + zombie->armor();
+    }
+    if (observedTotalHealth_ > 0 && totalHealth < observedTotalHealth_) {
+        soundCues_.push_back(SoundCue::Hit);
+    }
+    observedTotalHealth_ = totalHealth;
+}
+
 void GameScreen::resetInteraction() {
     selectedPlant_.reset();
     shovelSelected_ = false;
     hoveredCell_.reset();
     almanacRequested_ = false;
     menuRequested_ = false;
+    soundCues_.clear();
+    pulseEffects_.clear();
+    waveBannerSeconds_ = 1.2F;
+    observedWave_ = 0;
+    observedTotalHealth_ = 0;
+    observedProjectileCount_ = 0;
 }
 
 void GameScreen::handleEvent(
@@ -161,7 +384,7 @@ void GameScreen::handleEvent(
 
     if (const auto* move = event.getIf<sf::Event::MouseMoved>()) {
         const sf::Vector2f worldPosition = window.mapPixelToCoords(move->position);
-        hoveredCell_ = BoardGeometry::gridAt(
+        hoveredCell_ = visualGridAt(
             worldPosition.x,
             worldPosition.y
         );
@@ -215,7 +438,9 @@ void GameScreen::handleLeftClick(const sf::Vector2f position) {
         return;
     }
 
-    if (session_.collectSunAt(static_cast<float>(position.x), static_cast<float>(position.y))) {
+    if (session_.collectSunAt(screenToBoardX(position.x), position.y)) {
+        pulseEffects_.push_back({position, {255, 224, 72}, 0.0F, 0.55F});
+        soundCues_.push_back(SoundCue::CollectSun);
         return;
     }
 
@@ -235,7 +460,7 @@ void GameScreen::handleLeftClick(const sf::Vector2f position) {
         return;
     }
 
-    const auto cell = BoardGeometry::gridAt(
+    const auto cell = visualGridAt(
         position.x,
         position.y
     );
@@ -251,6 +476,16 @@ void GameScreen::handleLeftClick(const sf::Vector2f position) {
 
     if (selectedPlant_ &&
         session_.tryPlace(*selectedPlant_, *cell) == PlacementResult::Allowed) {
+        pulseEffects_.push_back({
+            {
+                visualCellLeft(cell->column) + visualCellWidth * 0.5F,
+                BoardGeometry::cellTop(cell->row) + BoardGeometry::cellHeight * 0.5F,
+            },
+            plantColor(*selectedPlant_),
+            0.0F,
+            0.45F,
+        });
+        soundCues_.push_back(SoundCue::Plant);
         selectedPlant_.reset();
     }
 }
@@ -260,8 +495,9 @@ void GameScreen::draw(sf::RenderWindow& window) const {
     drawBoard(window);
     drawCombat(window);
     drawSuns(window);
-    drawCards(window);
     drawToolbar(window);
+    drawCards(window);
+    drawFeedback(window);
     if (session_.isPaused()) {
         drawPauseOverlay(window);
     } else if (session_.state() == GameState::Won || session_.state() == GameState::Lost) {
@@ -272,6 +508,9 @@ void GameScreen::draw(sf::RenderWindow& window) const {
 void GameScreen::drawBackground(sf::RenderWindow& window) const {
     if (backgroundLoaded_) {
         sf::Sprite background(backgroundTexture_);
+        const sf::Vector2u source = backgroundTexture_.getSize();
+        background.setScale({0.9F, 600.0F / static_cast<float>(source.y)});
+        background.setPosition({-145.0F, 0.0F});
         window.draw(background);
         return;
     }
@@ -291,9 +530,9 @@ void GameScreen::drawBoard(sf::RenderWindow& window) const {
                     window,
                     static_cast<float>(plant->health()) /
                         static_cast<float>(plant->maxHealth()),
-                    {BoardGeometry::cellLeft(column) + 10.0F,
+                    {visualCellLeft(column) + 7.0F,
                      BoardGeometry::cellTop(row) + BoardGeometry::cellHeight - 10.0F},
-                    BoardGeometry::cellWidth - 20.0F
+                    visualCellWidth - 14.0F
                 );
             }
         }
@@ -303,9 +542,9 @@ void GameScreen::drawBoard(sf::RenderWindow& window) const {
         return;
     }
 
-    sf::RectangleShape highlight({BoardGeometry::cellWidth - 4.0F, BoardGeometry::cellHeight - 4.0F});
+    sf::RectangleShape highlight({visualCellWidth - 4.0F, BoardGeometry::cellHeight - 4.0F});
     highlight.setPosition({
-        BoardGeometry::cellLeft(hoveredCell_->column) + 2.0F,
+        visualCellLeft(hoveredCell_->column) + 2.0F,
         BoardGeometry::cellTop(hoveredCell_->row) + 2.0F,
     });
 
@@ -324,11 +563,12 @@ void GameScreen::drawBoard(sf::RenderWindow& window) const {
 
 void GameScreen::drawCombat(sf::RenderWindow& window) const {
     for (const LawnMower& mower : session_.combat().mowers()) {
+        const float mowerX = boardToScreenX(mower.x);
         if (mower.state == LawnMowerState::Used) {
             const float laneTop = BoardGeometry::cellTop(mower.row);
 
             sf::RectangleShape emptyBay({48.0F, 34.0F});
-            emptyBay.setPosition({CombatSystem::mowerStartX, laneTop + 54.0F});
+            emptyBay.setPosition({boardToScreenX(CombatSystem::mowerStartX), laneTop + 54.0F});
             emptyBay.setFillColor({42, 42, 38, 125});
             emptyBay.setOutlineColor({155, 58, 45, 220});
             emptyBay.setOutlineThickness(3.0F);
@@ -336,9 +576,9 @@ void GameScreen::drawCombat(sf::RenderWindow& window) const {
 
             for (const float yOffset : {66.0F, 82.0F}) {
                 for (int column = 0; column < BoardGeometry::columns; ++column) {
-                    sf::RectangleShape track({BoardGeometry::cellWidth * 0.62F, 4.0F});
+                    sf::RectangleShape track({visualCellWidth * 0.62F, 4.0F});
                     track.setPosition({
-                        BoardGeometry::cellLeft(column) + BoardGeometry::cellWidth * 0.18F,
+                        visualCellLeft(column) + visualCellWidth * 0.18F,
                         laneTop + yOffset,
                     });
                     track.setFillColor({25, 30, 22, 72});
@@ -347,57 +587,71 @@ void GameScreen::drawCombat(sf::RenderWindow& window) const {
             }
 
             sf::ConvexShape warning(3);
-            warning.setPoint(0, {CombatSystem::mowerStartX + 24.0F, laneTop + 8.0F});
-            warning.setPoint(1, {CombatSystem::mowerStartX + 7.0F, laneTop + 42.0F});
-            warning.setPoint(2, {CombatSystem::mowerStartX + 41.0F, laneTop + 42.0F});
+            const float emptyBayX = boardToScreenX(CombatSystem::mowerStartX);
+            warning.setPoint(0, {emptyBayX + 24.0F, laneTop + 8.0F});
+            warning.setPoint(1, {emptyBayX + 7.0F, laneTop + 42.0F});
+            warning.setPoint(2, {emptyBayX + 41.0F, laneTop + 42.0F});
             warning.setFillColor({205, 55, 42, 235});
             warning.setOutlineColor({255, 214, 118});
             warning.setOutlineThickness(2.0F);
             window.draw(warning);
 
             sf::RectangleShape warningStem({4.0F, 15.0F});
-            warningStem.setPosition({CombatSystem::mowerStartX + 22.0F, laneTop + 18.0F});
+            warningStem.setPosition({emptyBayX + 22.0F, laneTop + 18.0F});
             warningStem.setFillColor(sf::Color::White);
             window.draw(warningStem);
             sf::CircleShape warningDot(2.5F);
-            warningDot.setPosition({CombatSystem::mowerStartX + 21.5F, laneTop + 35.0F});
+            warningDot.setPosition({emptyBayX + 21.5F, laneTop + 35.0F});
             warningDot.setFillColor(sf::Color::White);
             window.draw(warningDot);
             continue;
         }
-        sf::RectangleShape body({48.0F, 34.0F});
-        body.setPosition({mower.x, BoardGeometry::cellTop(mower.row) + 54.0F});
-        body.setFillColor({202, 48, 42});
-        body.setOutlineColor({88, 25, 23});
-        body.setOutlineThickness(2.0F);
-        window.draw(body);
-        for (const float offset : {5.0F, 31.0F}) {
-            sf::CircleShape wheel(7.0F);
-            wheel.setPosition({mower.x + offset, BoardGeometry::cellTop(mower.row) + 80.0F});
-            wheel.setFillColor({45, 45, 45});
-            window.draw(wheel);
+        if (mowerLoaded_) {
+            sf::Sprite sprite(mowerTexture_);
+            fitSprite(sprite, {58.0F, 48.0F});
+            sprite.setPosition({mowerX - 4.0F, BoardGeometry::cellTop(mower.row) + 48.0F});
+            window.draw(sprite);
+        } else {
+            sf::RectangleShape body({48.0F, 34.0F});
+            body.setPosition({mowerX, BoardGeometry::cellTop(mower.row) + 54.0F});
+            body.setFillColor({202, 48, 42});
+            body.setOutlineColor({88, 25, 23});
+            body.setOutlineThickness(2.0F);
+            window.draw(body);
         }
     }
 
     for (const Projectile& projectile : session_.combat().projectiles()) {
-        sf::CircleShape pea(7.0F);
-        pea.setPosition({projectile.x, BoardGeometry::cellTop(projectile.row) + 39.0F});
-        if (projectile.type == Projectile::Type::FrozenPea) {
-            pea.setFillColor({104, 205, 245});
-        } else if (projectile.type == Projectile::Type::FirePea) {
-            pea.setFillColor({245, 118, 42});
+        const float projectileX = boardToScreenX(projectile.x);
+        sf::RectangleShape trail({18.0F, 4.0F});
+        trail.setPosition({projectileX - 14.0F, BoardGeometry::cellTop(projectile.row) + 44.0F});
+        trail.setFillColor({205, 255, 185, 105});
+        window.draw(trail);
+        const bool frozen = projectile.type == Projectile::Type::FrozenPea;
+        const sf::Texture* texture = frozen && frozenPeaLoaded_
+            ? &frozenPeaTexture_
+            : peaLoaded_ ? &peaTexture_ : nullptr;
+        if (texture) {
+            sf::Sprite pea(*texture);
+            fitSprite(pea, {24.0F, 24.0F});
+            pea.setPosition({projectileX - 5.0F, BoardGeometry::cellTop(projectile.row) + 34.0F});
+            if (projectile.type == Projectile::Type::FirePea) {
+                pea.setColor({255, 125, 55});
+            }
+            window.draw(pea);
         } else {
-            pea.setFillColor({92, 220, 65});
+            sf::CircleShape pea(7.0F);
+            pea.setPosition({projectileX, BoardGeometry::cellTop(projectile.row) + 39.0F});
+            pea.setFillColor(frozen ? sf::Color(104, 205, 245) : sf::Color(92, 220, 65));
+            window.draw(pea);
         }
-        pea.setOutlineColor({35, 105, 28});
-        pea.setOutlineThickness(2.0F);
-        window.draw(pea);
     }
 
     for (const auto& zombie : session_.combat().zombies()) {
-        const float top = BoardGeometry::cellTop(zombie->row()) + 10.0F;
+        const float top = BoardGeometry::cellTop(zombie->row()) + 6.0F;
+        const float zombieX = boardToScreenX(zombie->x());
         sf::RectangleShape body({CombatSystem::zombieWidth, 80.0F});
-        body.setPosition({zombie->x(), top});
+        body.setPosition({zombieX, top});
         sf::Color bodyColor{105, 125, 91};
         if (zombie->type() == ZombieType::Conehead) {
             bodyColor = {152, 118, 65};
@@ -419,33 +673,75 @@ void GameScreen::drawCombat(sf::RenderWindow& window) const {
                 190
             );
         }
-        body.setFillColor(bodyColor);
-        body.setOutlineColor({48, 61, 42});
-        body.setOutlineThickness(3.0F);
-        window.draw(body);
+        const std::size_t zombieIndex = static_cast<std::size_t>(zombie->type());
+        const std::vector<sf::Texture>* animation = &zombieAnimationFrames_[zombieIndex];
+        if (zombie->type() == ZombieType::PoleVaulting && !zombie->canVault() &&
+            !poleWalkingAnimationFrames_.empty()) {
+            animation = &poleWalkingAnimationFrames_;
+        } else if (zombie->type() == ZombieType::Newspaper && zombie->isEnraged() &&
+                   !newspaperEnragedAnimationFrames_.empty()) {
+            animation = &newspaperEnragedAnimationFrames_;
+        }
+        const sf::Texture* zombieTexture = nullptr;
+        if (!animation->empty()) {
+            const std::size_t frame = static_cast<std::size_t>(
+                animationTime_ * 11.0F + zombie->x() * 0.015F
+            ) % animation->size();
+            zombieTexture = &(*animation)[frame];
+        } else if (zombieLoaded_[zombieIndex]) {
+            zombieTexture = &zombieTextures_[zombieIndex];
+        }
+        if (zombieTexture) {
+            sf::Sprite sprite(*zombieTexture);
+            sf::Vector2f maximumSize{136.0F, 132.0F};
+            if (zombie->type() == ZombieType::PoleVaulting) {
+                maximumSize = {210.0F, 132.0F};
+            } else if (zombie->type() == ZombieType::Newspaper) {
+                maximumSize = {174.0F, 132.0F};
+            }
+            const float collisionWidth = CombatSystem::zombieWidth * visualScaleX;
+            placeBottomCentered(
+                sprite,
+                {{zombieX + collisionWidth * 0.5F - maximumSize.x * 0.5F,
+                  BoardGeometry::cellTop(zombie->row()) - 26.0F},
+                 {maximumSize.x, 132.0F}},
+                maximumSize
+            );
+            if (zombie->isSlowed()) {
+                sprite.setColor({180, 225, 255});
+            }
+            window.draw(sprite);
+        } else {
+            body.setFillColor(bodyColor);
+            body.setOutlineColor({48, 61, 42});
+            body.setOutlineThickness(3.0F);
+            window.draw(body);
 
-        sf::CircleShape head(17.0F);
-        head.setPosition({zombie->x() + 7.0F, top - 8.0F});
-        head.setFillColor({150, 165, 130});
-        window.draw(head);
-        if (zombie->type() == ZombieType::Flag) {
+            sf::CircleShape head(17.0F);
+            head.setPosition({zombieX + 7.0F, top - 8.0F});
+            head.setFillColor({150, 165, 130});
+            window.draw(head);
+        }
+        if (!zombieTexture && zombie->type() == ZombieType::Flag) {
             sf::RectangleShape pole({3.0F, 75.0F});
-            pole.setPosition({zombie->x() + 41.0F, top - 20.0F});
+            pole.setPosition({zombieX + 41.0F, top - 20.0F});
             pole.setFillColor({82, 54, 38});
             window.draw(pole);
             sf::RectangleShape flag({30.0F, 20.0F});
-            flag.setPosition({zombie->x() + 44.0F, top - 18.0F});
+            flag.setPosition({zombieX + 44.0F, top - 18.0F});
             flag.setFillColor({205, 45, 40});
             window.draw(flag);
-        } else if (zombie->type() == ZombieType::PoleVaulting && zombie->canVault()) {
+        } else if (!zombieTexture &&
+                   zombie->type() == ZombieType::PoleVaulting && zombie->canVault()) {
             sf::RectangleShape pole({78.0F, 4.0F});
-            pole.setPosition({zombie->x() - 15.0F, top + 38.0F});
+            pole.setPosition({zombieX - 15.0F, top + 38.0F});
             pole.setRotation(sf::degrees(-12.0F));
             pole.setFillColor({128, 86, 49});
             window.draw(pole);
-        } else if (zombie->type() == ZombieType::Newspaper && !zombie->isEnraged()) {
+        } else if (!zombieTexture &&
+                   zombie->type() == ZombieType::Newspaper && !zombie->isEnraged()) {
             sf::RectangleShape paper({38.0F, 28.0F});
-            paper.setPosition({zombie->x() + 4.0F, top + 38.0F});
+            paper.setPosition({zombieX + 4.0F, top + 38.0F});
             paper.setFillColor({225, 218, 188});
             paper.setOutlineColor({75, 70, 58});
             paper.setOutlineThickness(2.0F);
@@ -455,16 +751,16 @@ void GameScreen::drawCombat(sf::RenderWindow& window) const {
             window,
             static_cast<float>(zombie->health()) /
                 static_cast<float>(zombie->maxHealth()),
-            {zombie->x(), top - 14.0F},
-            CombatSystem::zombieWidth
+            {zombieX - 9.0F, top - 14.0F},
+            60.0F
         );
         if (zombie->maxArmor() > 0) {
             drawHealthBar(
                 window,
                 static_cast<float>(zombie->armor()) /
                     static_cast<float>(zombie->maxArmor()),
-                {zombie->x(), top - 7.0F},
-                CombatSystem::zombieWidth
+                {zombieX - 9.0F, top - 7.0F},
+                60.0F
             );
         }
     }
@@ -478,14 +774,79 @@ void GameScreen::drawPlant(
 ) const {
     const std::size_t index = toIndex(type);
     const sf::Vector2f targetPosition{
-        BoardGeometry::cellLeft(position.column) + 5.0F,
+        visualCellLeft(position.column) + 2.0F,
         BoardGeometry::cellTop(position.row) + 5.0F,
     };
 
-    if (plantLoaded_[index]) {
-        sf::Sprite sprite(plantTextures_[index]);
-        fitSprite(sprite, {BoardGeometry::cellWidth - 10.0F, BoardGeometry::cellHeight - 10.0F});
-        sprite.setPosition(targetPosition);
+    const sf::Color previewColor = preview ? sf::Color(255, 255, 255, 145) : sf::Color::White;
+    if (type == PlantType::Threepeater && plantAnimationFrames_[index].empty() &&
+        threepeaterHeadLoaded_) {
+        static constexpr std::array<sf::Vector2f, 3> stemOffsets{{
+            {7.0F, 31.0F}, {29.0F, 22.0F}, {48.0F, 32.0F},
+        }};
+        static constexpr std::array<sf::Vector2f, 3> headOffsets{{
+            {-1.0F, 15.0F}, {23.0F, 4.0F}, {46.0F, 16.0F},
+        }};
+        for (std::size_t part = 0; part < stemOffsets.size(); ++part) {
+            if (threepeaterStemLoaded_[part]) {
+                sf::Sprite stem(threepeaterStemTextures_[part]);
+                fitSprite(stem, {28.0F, 48.0F});
+                stem.setPosition(targetPosition + stemOffsets[part]);
+                stem.setColor(previewColor);
+                window.draw(stem);
+            }
+            sf::Sprite head(threepeaterHeadTexture_);
+            fitSprite(head, {37.0F, 31.0F});
+            head.setPosition(targetPosition + headOffsets[part]);
+            head.setColor(previewColor);
+            window.draw(head);
+        }
+        return;
+    }
+    if (type == PlantType::PotatoMine && plantAnimationFrames_[index].empty() &&
+        potatoMineLoaded_) {
+        sf::Sprite sprite(potatoMineTexture_);
+        fitSprite(sprite, {68.0F, 50.0F});
+        sprite.setPosition({targetPosition.x + 4.0F, targetPosition.y + 35.0F});
+        sprite.setColor(previewColor);
+        window.draw(sprite);
+        return;
+    }
+    if (type == PlantType::Torchwood && plantAnimationFrames_[index].empty() &&
+        torchwoodBodyLoaded_) {
+        sf::Sprite body(torchwoodBodyTexture_);
+        fitSprite(body, {62.0F, 76.0F});
+        body.setPosition({targetPosition.x + 7.0F, targetPosition.y + 12.0F});
+        body.setColor(previewColor);
+        window.draw(body);
+        if (torchwoodFireLoaded_) {
+            sf::Sprite fire(torchwoodFireTexture_);
+            fitSprite(fire, {46.0F, 33.0F});
+            fire.setPosition({targetPosition.x + 15.0F, targetPosition.y - 2.0F});
+            fire.setColor(previewColor);
+            window.draw(fire);
+        }
+        return;
+    }
+
+    const std::vector<sf::Texture>& animation = plantAnimationFrames_[index];
+    const sf::Texture* plantTexture = nullptr;
+    if (!animation.empty()) {
+        const std::size_t frame = preview ? 0 : static_cast<std::size_t>(
+            animationTime_ * 10.0F + static_cast<float>(position.row * 2 + position.column)
+        ) % animation.size();
+        plantTexture = &animation[frame];
+    } else if (plantLoaded_[index]) {
+        plantTexture = &plantTextures_[index];
+    }
+    if (plantTexture) {
+        sf::Sprite sprite(*plantTexture);
+        placeBottomCentered(
+            sprite,
+            {{visualCellLeft(position.column), BoardGeometry::cellTop(position.row)},
+             {visualCellWidth, BoardGeometry::cellHeight - 8.0F}},
+            {68.0F, 84.0F}
+        );
         if (preview) {
             sprite.setColor({255, 255, 255, 145});
         }
@@ -501,16 +862,60 @@ void GameScreen::drawPlant(
 
 void GameScreen::drawSuns(sf::RenderWindow& window) const {
     for (const SunToken& token : session_.suns().tokens()) {
+        const float pulse = 1.0F + std::sin(animationTime_ * 5.0F + token.x * 0.02F) * 0.08F;
+        const float tokenX = boardToScreenX(token.x);
         if (sunLoaded_) {
             sf::Sprite sprite(sunTexture_);
             fitSprite(sprite, {SunSystem::tokenSize, SunSystem::tokenSize});
-            sprite.setPosition({token.x, token.y});
+            sprite.scale({pulse, pulse});
+            sprite.setPosition({
+                tokenX - SunSystem::tokenSize * (pulse - 1.0F) * 0.5F,
+                token.y - SunSystem::tokenSize * (pulse - 1.0F) * 0.5F,
+            });
             window.draw(sprite);
         } else {
-            sf::CircleShape sun(SunSystem::tokenSize / 2.0F);
-            sun.setPosition({token.x, token.y});
+            sf::CircleShape sun(SunSystem::tokenSize * pulse / 2.0F);
+            sun.setPosition({
+                tokenX - SunSystem::tokenSize * (pulse - 1.0F) * 0.5F,
+                token.y - SunSystem::tokenSize * (pulse - 1.0F) * 0.5F,
+            });
             sun.setFillColor({255, 215, 50});
             window.draw(sun);
+        }
+    }
+}
+
+void GameScreen::drawFeedback(sf::RenderWindow& window) const {
+    for (const PulseEffect& effect : pulseEffects_) {
+        const float progress = effect.age / effect.duration;
+        sf::CircleShape ring(16.0F + progress * 42.0F, 40);
+        ring.setOrigin({ring.getRadius(), ring.getRadius()});
+        ring.setPosition(effect.center);
+        ring.setFillColor(sf::Color::Transparent);
+        sf::Color color = effect.color;
+        color.a = static_cast<std::uint8_t>(210.0F * (1.0F - progress));
+        ring.setOutlineColor(color);
+        ring.setOutlineThickness(5.0F * (1.0F - progress));
+        window.draw(ring);
+    }
+
+    if (waveBannerSeconds_ > 0.0F) {
+        const float opacity = std::min(1.0F, waveBannerSeconds_ * 2.0F);
+        sf::RectangleShape banner({420.0F, 72.0F});
+        banner.setPosition({270.0F, 112.0F});
+        banner.setFillColor({90, 25, 25, static_cast<std::uint8_t>(190.0F * opacity)});
+        banner.setOutlineColor({255, 219, 92, static_cast<std::uint8_t>(240.0F * opacity)});
+        banner.setOutlineThickness(4.0F);
+        window.draw(banner);
+        if (feedbackFontLoaded_) {
+            sf::Text text(
+                feedbackFont_,
+                ui::utf8("第 " + std::to_string(session_.level().currentWave()) + " 波"),
+                38
+            );
+            ui::centerText(text, {{270.0F, 112.0F}, {420.0F, 72.0F}});
+            text.setFillColor({255, 236, 150, static_cast<std::uint8_t>(255.0F * opacity)});
+            window.draw(text);
         }
     }
 }
@@ -518,21 +923,43 @@ void GameScreen::drawSuns(sf::RenderWindow& window) const {
 void GameScreen::drawCards(sf::RenderWindow& window) const {
     for (const CardLayout& layout : cardLayouts()) {
         const std::size_t index = toIndex(layout.type);
-        if (cardLoaded_[index]) {
-            sf::Sprite card(cardTextures_[index]);
-            const sf::Vector2u source = cardTextures_[index].getSize();
-            card.setScale({
-                cardSize.x / static_cast<float>(source.x),
-                cardSize.y / static_cast<float>(source.y),
-            });
-            card.setPosition(layout.position);
-            window.draw(card);
-        } else {
-            sf::RectangleShape fallback(cardSize);
-            fallback.setPosition(layout.position);
-            fallback.setFillColor(plantColor(layout.type));
-            window.draw(fallback);
+        sf::RectangleShape card(cardSize);
+        card.setPosition(layout.position);
+        card.setFillColor({206, 184, 126});
+        card.setOutlineColor({73, 47, 26});
+        card.setOutlineThickness(2.0F);
+        window.draw(card);
+        sf::RectangleShape portrait({cardSize.x - 6.0F, 43.0F});
+        portrait.setPosition(layout.position + sf::Vector2f{3.0F, 3.0F});
+        portrait.setFillColor({70, 130, 58});
+        window.draw(portrait);
+
+        const sf::Texture* previewTexture = nullptr;
+        if (!plantAnimationFrames_[index].empty()) {
+            previewTexture = &plantAnimationFrames_[index].front();
+        } else if (plantLoaded_[index]) {
+            previewTexture = &plantTextures_[index];
+        } else if (layout.type == PlantType::Threepeater && threepeaterHeadLoaded_) {
+            previewTexture = &threepeaterHeadTexture_;
+        } else if (layout.type == PlantType::PotatoMine && potatoMineLoaded_) {
+            previewTexture = &potatoMineTexture_;
+        } else if (layout.type == PlantType::Torchwood && torchwoodBodyLoaded_) {
+            previewTexture = &torchwoodBodyTexture_;
         }
+        if (previewTexture) {
+            sf::Sprite preview(*previewTexture);
+            placeBottomCentered(
+                preview,
+                {{layout.position.x + 3.0F, layout.position.y + 3.0F}, {cardSize.x - 6.0F, 43.0F}},
+                {39.0F, 40.0F}
+            );
+            window.draw(preview);
+        }
+        drawNumber(
+            window,
+            session_.cards().definition(layout.type).cost,
+            {layout.position.x + 3.0F, layout.position.y + 43.0F}
+        );
 
         const float cooldown = session_.cards().cooldownProgress(layout.type);
         const bool unaffordable = session_.sun() < session_.cards().definition(layout.type).cost;
@@ -562,26 +989,47 @@ void GameScreen::drawCards(sf::RenderWindow& window) const {
 }
 
 void GameScreen::drawToolbar(sf::RenderWindow& window) const {
-    sf::RectangleShape sunPanel({66.0F, 90.0F});
-    sunPanel.setPosition({8.0F, 4.0F});
-    sunPanel.setFillColor({86, 57, 30, 210});
-    sunPanel.setOutlineColor({229, 198, 113});
-    sunPanel.setOutlineThickness(2.0F);
-    window.draw(sunPanel);
-
-    if (sunLoaded_) {
-        sf::Sprite icon(sunTexture_);
-        fitSprite(icon, {45.0F, 45.0F});
-        icon.setPosition({18.0F, 8.0F});
-        window.draw(icon);
+    if (chooserLoaded_) {
+        sf::Sprite chooser(chooserTexture_);
+        const sf::Vector2u source = chooserTexture_.getSize();
+        chooser.setScale({590.0F / source.x, 98.0F / source.y});
+        window.draw(chooser);
+        sf::RectangleShape valueCover({54.0F, 23.0F});
+        valueCover.setPosition({10.0F, 66.0F});
+        valueCover.setFillColor({205, 180, 127});
+        window.draw(valueCover);
+    } else {
+        sf::RectangleShape sunPanel({66.0F, 90.0F});
+        sunPanel.setPosition({8.0F, 4.0F});
+        sunPanel.setFillColor({86, 57, 30, 210});
+        sunPanel.setOutlineColor({229, 198, 113});
+        sunPanel.setOutlineThickness(2.0F);
+        window.draw(sunPanel);
+        if (sunLoaded_) {
+            sf::Sprite icon(sunTexture_);
+            fitSprite(icon, {45.0F, 45.0F});
+            icon.setPosition({18.0F, 8.0F});
+            window.draw(icon);
+        }
     }
     drawNumber(window, session_.sun(), {16.0F, 62.0F});
 
-    drawButton(window, shovelBounds, shovelSelected_ ? sf::Color(185, 150, 54) : sf::Color(85, 62, 37));
+    if (shovelSlotLoaded_) {
+        sf::Sprite slot(shovelSlotTexture_);
+        const sf::Vector2u source = shovelSlotTexture_.getSize();
+        slot.setScale({shovelBounds.size.x / source.x, shovelBounds.size.y / source.y});
+        slot.setPosition(shovelBounds.position);
+        window.draw(slot);
+    } else {
+        drawButton(window, shovelBounds, shovelSelected_ ? sf::Color(185, 150, 54) : sf::Color(85, 62, 37));
+    }
     if (shovelLoaded_) {
         sf::Sprite shovel(shovelTexture_);
         fitSprite(shovel, {52.0F, 52.0F});
         shovel.setPosition({shovelBounds.position.x + 5.0F, shovelBounds.position.y + 4.0F});
+        if (shovelSelected_) {
+            shovel.setColor({255, 245, 145});
+        }
         window.draw(shovel);
     }
 
@@ -601,9 +1049,13 @@ void GameScreen::drawToolbar(sf::RenderWindow& window) const {
 
     sf::RectangleShape wavePanel({88.0F, 42.0F});
     wavePanel.setPosition({680.0F, 18.0F});
-    wavePanel.setFillColor(session_.level().finalWaveStarted()
-                               ? sf::Color(145, 52, 38, 225)
-                               : sf::Color(58, 80, 43, 225));
+    wavePanel.setFillColor(
+        session_.level().isEndless()
+            ? sf::Color(91, 54, 105, 225)
+            : session_.level().finalWaveStarted()
+                ? sf::Color(145, 52, 38, 225)
+                : sf::Color(58, 80, 43, 225)
+    );
     wavePanel.setOutlineColor({229, 198, 113});
     wavePanel.setOutlineThickness(2.0F);
     window.draw(wavePanel);
@@ -613,7 +1065,13 @@ void GameScreen::drawToolbar(sf::RenderWindow& window) const {
     separator.setRotation(sf::degrees(-55.0F));
     separator.setFillColor({255, 236, 125});
     window.draw(separator);
-    drawNumber(window, session_.level().waveCount(), {742.0F, 28.0F});
+    drawNumber(
+        window,
+        session_.level().isEndless()
+            ? session_.highestEndlessWave()
+            : session_.level().waveCount(),
+        {742.0F, 28.0F}
+    );
 
     drawButton(window, pauseBounds, {58, 80, 43, 225});
     if (session_.isPaused()) {
@@ -731,7 +1189,7 @@ void GameScreen::drawHealthBar(
 
     sf::RectangleShape health({width * std::clamp(ratio, 0.0F, 1.0F), 5.0F});
     health.setPosition(position);
-    health.setFillColor(ratio > 0.35F ? sf::Color(80, 210, 70) : sf::Color(230, 65, 45));
+    health.setFillColor(ratio > 0.35F ? sf::Color(80, 210, 70) : sf::Color(238, 178, 58));
     window.draw(health);
 }
 

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "audio/AudioSystem.hpp"
 #include "game/GameSession.hpp"
 
 #include <SFML/Graphics.hpp>
@@ -7,6 +8,7 @@
 #include <array>
 #include <cstdint>
 #include <optional>
+#include <vector>
 
 namespace object_project {
 
@@ -15,7 +17,9 @@ public:
     explicit GameScreen(GameSession& session);
 
     void handleEvent(const sf::Event& event, const sf::RenderWindow& window);
+    void update(float deltaSeconds);
     void draw(sf::RenderWindow& window) const;
+    std::vector<SoundCue> takeSoundCues();
     bool takeAlmanacRequest();
     bool takeMenuRequest();
     void resetInteraction();
@@ -24,6 +28,13 @@ private:
     struct CardLayout {
         PlantType type;
         sf::Vector2f position;
+    };
+
+    struct PulseEffect {
+        sf::Vector2f center;
+        sf::Color color;
+        float age{};
+        float duration{0.5F};
     };
 
     static constexpr sf::Vector2f cardSize{46.0F, 64.0F};
@@ -46,6 +57,7 @@ private:
     void drawToolbar(sf::RenderWindow& window) const;
     void drawPauseOverlay(sf::RenderWindow& window) const;
     void drawResultOverlay(sf::RenderWindow& window) const;
+    void drawFeedback(sf::RenderWindow& window) const;
     void drawPlant(sf::RenderWindow& window, PlantType type, GridPosition position, bool preview) const;
     void drawHealthBar(sf::RenderWindow& window, float ratio, sf::Vector2f position, float width) const;
     void drawNumber(sf::RenderWindow& window, int value, sf::Vector2f position) const;
@@ -56,17 +68,52 @@ private:
     bool almanacRequested_{};
     bool menuRequested_{};
     std::optional<GridPosition> hoveredCell_;
+    std::vector<SoundCue> soundCues_;
+    std::vector<PulseEffect> pulseEffects_;
+    float animationTime_{};
+    float waveBannerSeconds_{};
+    int observedWave_{};
+    int observedTotalHealth_{};
+    std::size_t observedProjectileCount_{};
 
     sf::Texture backgroundTexture_;
     std::array<sf::Texture, plantTypeCount> cardTextures_;
     std::array<sf::Texture, plantTypeCount> plantTextures_;
+    std::array<sf::Texture, zombieTypeCount> zombieTextures_;
+    std::array<std::vector<sf::Texture>, plantTypeCount> plantAnimationFrames_;
+    std::array<std::vector<sf::Texture>, zombieTypeCount> zombieAnimationFrames_;
+    std::vector<sf::Texture> poleWalkingAnimationFrames_;
+    std::vector<sf::Texture> newspaperEnragedAnimationFrames_;
+    std::array<sf::Texture, 3> threepeaterStemTextures_;
+    sf::Texture threepeaterHeadTexture_;
+    sf::Texture potatoMineTexture_;
+    sf::Texture torchwoodBodyTexture_;
+    sf::Texture torchwoodFireTexture_;
+    sf::Texture mowerTexture_;
+    sf::Texture peaTexture_;
+    sf::Texture frozenPeaTexture_;
     sf::Texture sunTexture_;
     sf::Texture shovelTexture_;
+    sf::Texture chooserTexture_;
+    sf::Texture shovelSlotTexture_;
     bool backgroundLoaded_{};
     std::array<bool, plantTypeCount> cardLoaded_{};
     std::array<bool, plantTypeCount> plantLoaded_{};
+    std::array<bool, zombieTypeCount> zombieLoaded_{};
+    std::array<bool, 3> threepeaterStemLoaded_{};
+    bool threepeaterHeadLoaded_{};
+    bool potatoMineLoaded_{};
+    bool torchwoodBodyLoaded_{};
+    bool torchwoodFireLoaded_{};
+    bool mowerLoaded_{};
+    bool peaLoaded_{};
+    bool frozenPeaLoaded_{};
     bool sunLoaded_{};
     bool shovelLoaded_{};
+    bool chooserLoaded_{};
+    bool shovelSlotLoaded_{};
+    sf::Font feedbackFont_;
+    bool feedbackFontLoaded_{};
 };
 
 }  // namespace object_project

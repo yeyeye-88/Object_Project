@@ -1,5 +1,7 @@
 #include "game/GameSession.hpp"
 
+#include <algorithm>
+
 namespace object_project {
 
 GameSession::GameSession(const LevelId levelId)
@@ -14,11 +16,14 @@ void GameSession::update(const float deltaSeconds) {
     for (const SpawnEvent& event : level_.update(deltaSeconds)) {
         combat_.spawnZombie(event.type, event.row);
     }
+    if (level_.isEndless()) {
+        highestEndlessWave_ = std::max(highestEndlessWave_, level_.currentWave());
+    }
     combat_.update(deltaSeconds, board_, suns_);
 
     if (combat_.breached()) {
         state_ = GameState::Lost;
-    } else if (level_.allSpawned() && !combat_.hasLivingZombies()) {
+    } else if (!level_.isEndless() && level_.allSpawned() && !combat_.hasLivingZombies()) {
         state_ = GameState::Won;
     }
 }

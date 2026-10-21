@@ -87,5 +87,25 @@ int main() {
             tutorialSession.sun() == levelDefinition(LevelId::NightChallenge).initialSun,
         "starting another level resets the session with its configuration"
     );
+
+    GameSession endlessSession(LevelId::EndlessDefense);
+    for (int step = 0; step < 250; ++step) {
+        endlessSession.update(0.1F);
+        for (const auto& zombie : endlessSession.combat().zombies()) {
+            zombie->takeDamage(zombie->health());
+        }
+    }
+    passed &= check(
+        endlessSession.state() == GameState::Running &&
+            endlessSession.level().currentWave() >= 2 &&
+            endlessSession.highestEndlessWave() >= 2,
+        "endless session keeps running and records its highest wave"
+    );
+    const int recordedWave = endlessSession.highestEndlessWave();
+    endlessSession.restart();
+    passed &= check(
+        endlessSession.highestEndlessWave() == recordedWave,
+        "restarting endless mode preserves the in-app wave record"
+    );
     return passed ? 0 : 1;
 }

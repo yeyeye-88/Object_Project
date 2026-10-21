@@ -5,25 +5,25 @@ namespace object_project {
 namespace {
 
 constexpr std::array<AlmanacEntry, plantTypeCount> plantEntries{{
-    {"SUNFLOWER", "RESOURCE", "COST 50   HP 100", "PRODUCES 25 SUN EVERY 8 SECONDS.", "BUILD EARLY TO SUPPORT EXPENSIVE CARDS."},
-    {"PEASHOOTER", "BASIC DAMAGE", "COST 100  HP 100", "FIRES ONE PEA AT ITS OWN LANE.", "PLACE BEHIND DEFENSIVE PLANTS."},
-    {"WALL-NUT", "DEFENSE", "COST 50   HP 500", "BLOCKS ZOMBIES WITH HIGH HEALTH.", "USE IT TO BUY TIME FOR SHOOTERS."},
-    {"REPEATER", "STRONG DAMAGE", "COST 200  HP 100", "FIRES TWO PEAS EACH ATTACK.", "FOCUS IT ON ARMORED ZOMBIES."},
-    {"THREEPEATER", "MULTI-LANE", "COST 325  HP 100", "FIRES INTO ITS LANE AND BOTH NEIGHBORS.", "THE MIDDLE LANES GIVE THE BEST COVERAGE."},
-    {"SNOW PEA", "DAMAGE / CONTROL", "COST 175  HP 100", "FROZEN PEAS SLOW MOVEMENT AND ATTACKS.", "USE IT TO DELAY TOUGH ZOMBIES."},
-    {"TALL-NUT", "HEAVY DEFENSE", "COST 125  HP 900", "HIGH HEALTH AND BLOCKS VAULTING ZOMBIES.", "PLACE IT IN FRONT OF IMPORTANT SHOOTERS."},
-    {"POTATO MINE", "DELAYED BURST", "COST 25   HP 100", "ARMS, THEN DESTROYS ONE NEARBY ZOMBIE.", "PLANT IT EARLY SO IT CAN ARM IN TIME."},
-    {"CHERRY BOMB", "AREA BURST", "COST 150  HP 100", "EXPLODES ACROSS THREE LANES AFTER A SHORT FUSE.", "SAVE IT FOR CLUSTERS OF TOUGH ZOMBIES."},
-    {"TORCHWOOD", "PROJECTILE BOOST", "COST 175  HP 150", "DOUBLES NORMAL PEA DAMAGE AS FIRE PEAS.", "PLACE IT IN FRONT OF PEA SHOOTERS."},
+    {"向日葵", "资源", "花费 50   生命 100", "每 8 秒生产 25 点阳光。", "尽早种植，为高费用植物提供经济。"},
+    {"豌豆射手", "基础输出", "花费 100  生命 100", "向所在行发射一枚豌豆。", "放在防御植物后方。"},
+    {"坚果", "防御", "花费 50   生命 500", "以高生命值阻挡僵尸。", "为后排射手争取输出时间。"},
+    {"双发射手", "强力输出", "花费 200  生命 100", "每次攻击连续发射两枚豌豆。", "适合集中处理高护甲僵尸。"},
+    {"三线射手", "多行输出", "花费 325  生命 100", "同时攻击本行及相邻两行。", "种在中间行可以覆盖更多区域。"},
+    {"寒冰射手", "输出 / 控制", "花费 175  生命 100", "冰豌豆会降低僵尸移动与攻击速度。", "用它拖慢强力僵尸。"},
+    {"高坚果", "重型防御", "花费 125  生命 900", "生命很高，并能阻挡撑杆跳跃。", "放在重要射手前方。"},
+    {"土豆地雷", "延时爆发", "花费 25   生命 100", "准备完成后消灭附近一只僵尸。", "提前种植，为它留下准备时间。"},
+    {"樱桃炸弹", "范围爆发", "花费 150  生命 100", "短暂延迟后对三行范围造成高伤害。", "留给聚集的强力僵尸。"},
+    {"火炬树桩", "子弹增益", "花费 175  生命 150", "普通豌豆穿过后伤害翻倍。", "放在豌豆类射手前方。"},
 }};
 
 constexpr std::array<AlmanacEntry, zombieTypeCount> zombieEntries{{
-    {"NORMAL ZOMBIE", "BASIC ENEMY", "HP 100   ARMOR 0", "WALKS AND BITES PLANTS.", "ONE SHOOTER CAN HANDLE IT WITH ENOUGH TIME."},
-    {"CONEHEAD ZOMBIE", "LIGHT ARMOR", "HP 100   ARMOR 100", "ITS CONE ABSORBS DAMAGE BEFORE HEALTH.", "USE CONCENTRATED FIRE OR A REPEATER."},
-    {"BUCKETHEAD ZOMBIE", "HEAVY ARMOR", "HP 100   ARMOR 220", "A TOUGH BUCKET ABSORBS HEAVY DAMAGE.", "STALL IT WITH A WALL-NUT AND FOCUS FIRE."},
-    {"FLAG ZOMBIE", "WAVE LEADER", "HP 120   ARMOR 0", "ANNOUNCES A LARGE WAVE OF ZOMBIES.", "PREPARE EXTRA DEFENSE WHEN ITS FLAG APPEARS."},
-    {"POLE VAULTING ZOMBIE", "VAULTING", "HP 120   ARMOR 0", "VAULTS OVER ITS FIRST PLANT, BUT NOT A TALL-NUT.", "USE A TALL-NUT OR LAYER YOUR DEFENSES."},
-    {"NEWSPAPER ZOMBIE", "ENRAGED", "HP 100   PAPER 80", "MOVES AND ATTACKS FASTER AFTER ITS PAPER BREAKS.", "SLOW IT BEFORE DESTROYING THE NEWSPAPER."},
+    {"普通僵尸", "基础敌人", "生命 100   护甲 0", "缓慢前进并啃咬植物。", "只要时间充足，一株射手即可应付。"},
+    {"路障僵尸", "轻型护甲", "生命 100   护甲 100", "路障会优先吸收伤害。", "集中火力或使用双发射手。"},
+    {"铁桶僵尸", "重型护甲", "生命 100   护甲 220", "铁桶可以吸收大量伤害。", "用坚果拖延并集中攻击。"},
+    {"旗帜僵尸", "波次领队", "生命 120   护甲 0", "出现时代表大波僵尸来袭。", "看到旗帜后立即补强防线。"},
+    {"撑杆僵尸", "跳跃突进", "生命 120   护甲 0", "会跳过第一株植物，但无法越过高坚果。", "使用高坚果或布置两层防线。"},
+    {"报纸僵尸", "狂暴", "生命 100   报纸 80", "报纸破损后移动和攻击都会加快。", "先减速，再打破报纸。"},
 }};
 
 }  // namespace

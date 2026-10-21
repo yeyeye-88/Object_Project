@@ -1,19 +1,21 @@
 #include "ui/AlmanacScreen.hpp"
 
 #include "game/PlantType.hpp"
+#include "ui/UiText.hpp"
 
 #include <algorithm>
+#include <array>
 #include <string>
 
 namespace object_project {
 
 namespace {
 
-constexpr sf::FloatRect plantTab{{80.0F, 85.0F}, {180.0F, 50.0F}};
-constexpr sf::FloatRect zombieTab{{280.0F, 85.0F}, {180.0F, 50.0F}};
-constexpr sf::FloatRect previousButton{{80.0F, 500.0F}, {100.0F, 50.0F}};
-constexpr sf::FloatRect nextButton{{200.0F, 500.0F}, {100.0F, 50.0F}};
-constexpr sf::FloatRect backButton{{780.0F, 500.0F}, {100.0F, 50.0F}};
+constexpr sf::FloatRect plantTab{{90.0F, 515.0F}, {145.0F, 48.0F}};
+constexpr sf::FloatRect zombieTab{{250.0F, 515.0F}, {145.0F, 48.0F}};
+constexpr sf::FloatRect previousButton{{155.0F, 35.0F}, {115.0F, 62.0F}};
+constexpr sf::FloatRect nextButton{{690.0F, 35.0F}, {115.0F, 62.0F}};
+constexpr sf::FloatRect backButton{{725.0F, 515.0F}, {145.0F, 48.0F}};
 
 void drawPanel(sf::RenderWindow& window, const sf::FloatRect& bounds, const sf::Color color) {
     sf::RectangleShape panel(bounds.size);
@@ -24,10 +26,54 @@ void drawPanel(sf::RenderWindow& window, const sf::FloatRect& bounds, const sf::
     window.draw(panel);
 }
 
+void fitCentered(sf::Sprite& sprite, const sf::FloatRect bounds) {
+    const sf::Vector2u source = sprite.getTexture().getSize();
+    const float scale = std::min(
+        bounds.size.x / static_cast<float>(source.x),
+        bounds.size.y / static_cast<float>(source.y)
+    );
+    sprite.setScale({scale, scale});
+    const sf::FloatRect local = sprite.getLocalBounds();
+    sprite.setPosition({
+        bounds.position.x + (bounds.size.x - local.size.x * scale) * 0.5F,
+        bounds.position.y + (bounds.size.y - local.size.y * scale) * 0.5F,
+    });
+}
+
 }  // namespace
 
 AlmanacScreen::AlmanacScreen() {
-    fontLoaded_ = font_.openFromFile("assets/fonts/tuffy.ttf");
+    fontLoaded_ = ui::loadChineseFont(font_);
+    backgroundLoaded_ = backgroundTexture_.loadFromFile("assets/background/lawn.jpg");
+    panelLoaded_ = panelTexture_.loadFromFile("assets/pvz/ui/reference/almanac_panel.png");
+    buttonLoaded_ = buttonTexture_.loadFromFile("assets/pvz/ui/reference/wood_button.png");
+
+    const std::array<std::string, plantTypeCount> plantPaths{
+        "assets/pvz/plants/sunflower.png",
+        "assets/pvz/plants/peashooter.png",
+        "assets/pvz/plants/wallnut.png",
+        "assets/pvz/plants/repeater.png",
+        "assets/pvz/plants/threepeater_head.png",
+        "assets/pvz/plants/snowpea.png",
+        "assets/pvz/plants/tallnut.png",
+        "assets/pvz/plants/potato_mine.png",
+        "assets/pvz/plants/cherrybomb.png",
+        "assets/pvz/plants/torchwood_body.png",
+    };
+    const std::array<std::string, zombieTypeCount> zombiePaths{
+        "assets/pvz/zombies/normal.png",
+        "assets/pvz/zombies/conehead.png",
+        "assets/pvz/zombies/buckethead.png",
+        "assets/pvz/zombies/flag.png",
+        "assets/pvz/zombies/pole_vaulting.gif",
+        "assets/pvz/zombies/newspaper.gif",
+    };
+    for (std::size_t index = 0; index < plantTextures_.size(); ++index) {
+        plantLoaded_[index] = plantTextures_[index].loadFromFile(plantPaths[index]);
+    }
+    for (std::size_t index = 0; index < zombieTextures_.size(); ++index) {
+        zombieLoaded_[index] = zombieTextures_[index].loadFromFile(zombiePaths[index]);
+    }
 }
 
 bool AlmanacScreen::handleEvent(
@@ -69,36 +115,53 @@ bool AlmanacScreen::handleEvent(
 }
 
 void AlmanacScreen::draw(sf::RenderWindow& window) const {
-    sf::RectangleShape background({960.0F, 600.0F});
-    background.setFillColor({31, 56, 35});
-    window.draw(background);
+    if (backgroundLoaded_) {
+        sf::Sprite background(backgroundTexture_);
+        window.draw(background);
+    }
+    sf::RectangleShape shade({960.0F, 600.0F});
+    shade.setFillColor({19, 35, 20, 115});
+    window.draw(shade);
+    if (panelLoaded_) {
+        sf::Sprite panel(panelTexture_);
+        panel.setScale({1.75F, 1.75F});
+        panel.setPosition({60.0F, 20.0F});
+        window.draw(panel);
+    }
 
-    drawText(window, "ALMANAC", 42, {70.0F, 22.0F}, {255, 232, 145});
-    drawPanel(window, plantTab, category_ == Category::Plants ? sf::Color(88, 139, 67) : sf::Color(61, 83, 58));
-    drawPanel(window, zombieTab, category_ == Category::Zombies ? sf::Color(125, 103, 67) : sf::Color(61, 83, 58));
-    drawText(window, "PLANTS", 24, {119.0F, 96.0F});
-    drawText(window, "ZOMBIES", 24, {311.0F, 96.0F});
-
-    drawPanel(window, {{80.0F, 160.0F}, {800.0F, 310.0F}}, {47, 72, 48});
     const AlmanacEntry& entry = selectedEntry();
-    drawText(window, entry.name.data(), 36, {115.0F, 188.0F}, {255, 224, 115});
-    drawText(window, entry.role.data(), 22, {116.0F, 244.0F}, {174, 220, 153});
-    drawText(window, entry.stats.data(), 22, {116.0F, 292.0F});
-    drawText(window, entry.ability.data(), 20, {116.0F, 346.0F});
-    drawText(window, entry.tip.data(), 18, {116.0F, 405.0F}, {225, 215, 173});
+    const sf::Texture* portraitTexture = nullptr;
+    if (category_ == Category::Plants && plantLoaded_[selectedIndex_]) {
+        portraitTexture = &plantTextures_[selectedIndex_];
+    } else if (category_ == Category::Zombies && zombieLoaded_[selectedIndex_]) {
+        portraitTexture = &zombieTextures_[selectedIndex_];
+    }
+    if (portraitTexture) {
+        sf::Sprite portrait(*portraitTexture);
+        fitCentered(portrait, {{330.0F, 112.0F}, {300.0F, 178.0F}});
+        window.draw(portrait);
+    }
 
-    drawPanel(window, previousButton, {68, 91, 61});
-    drawPanel(window, nextButton, {68, 91, 61});
-    drawPanel(window, backButton, {115, 73, 48});
-    drawText(window, "PREV", 20, {103.0F, 512.0F});
-    drawText(window, "NEXT", 20, {221.0F, 512.0F});
-    drawText(window, "BACK", 20, {802.0F, 512.0F});
+    drawText(window, entry.name.data(), 28, {333.0F, 338.0F}, {74, 38, 17});
+    drawText(window, entry.role.data(), 18, {335.0F, 377.0F}, {115, 59, 24});
+    drawText(window, entry.stats.data(), 17, {335.0F, 407.0F}, {58, 42, 25});
+    drawText(window, entry.ability.data(), 15, {335.0F, 437.0F}, {58, 42, 25});
+    drawText(window, entry.tip.data(), 14, {335.0F, 469.0F}, {95, 61, 30});
+
+    drawPanel(window, plantTab, category_ == Category::Plants ? sf::Color(120, 73, 35) : sf::Color(77, 48, 27));
+    drawPanel(window, zombieTab, category_ == Category::Zombies ? sf::Color(120, 73, 35) : sf::Color(77, 48, 27));
+    drawPanel(window, backButton, {91, 51, 29});
+    drawText(window, "植物", 22, {138.0F, 524.0F});
+    drawText(window, "僵尸", 22, {298.0F, 524.0F});
+    drawText(window, "返回", 22, {773.0F, 524.0F});
+    drawText(window, "‹", 46, {197.0F, 38.0F}, {246, 231, 190});
+    drawText(window, "›", 46, {733.0F, 38.0F}, {246, 231, 190});
     drawText(
         window,
         std::to_string(selectedIndex_ + 1) + " / " + std::to_string(entryCount()),
-        18,
-        {430.0F, 515.0F},
-        {230, 220, 170}
+        16,
+        {455.0F, 527.0F},
+        {92, 55, 27}
     );
 }
 
@@ -112,7 +175,7 @@ void AlmanacScreen::drawText(
     if (!fontLoaded_) {
         return;
     }
-    sf::Text text(font_, value, size);
+    sf::Text text(font_, ui::utf8(value), size);
     text.setPosition(position);
     text.setFillColor(color);
     window.draw(text);

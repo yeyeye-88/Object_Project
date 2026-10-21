@@ -13,7 +13,7 @@ include(FetchContent)
 # Build SFML as static libraries so the M0 executable can run without copying
 # SFML DLL files beside it.
 set(BUILD_SHARED_LIBS OFF CACHE BOOL "Build shared libraries" FORCE)
-set(SFML_BUILD_AUDIO OFF CACHE BOOL "Build SFML audio module" FORCE)
+set(SFML_BUILD_AUDIO ON CACHE BOOL "Build SFML audio module" FORCE)
 set(SFML_BUILD_NETWORK OFF CACHE BOOL "Build SFML network module" FORCE)
 set(SFML_BUILD_EXAMPLES OFF CACHE BOOL "Build SFML examples" FORCE)
 set(SFML_BUILD_DOC OFF CACHE BOOL "Build SFML documentation" FORCE)
@@ -30,6 +30,7 @@ FetchContent_MakeAvailable(SFML)
 
 add_library(object_project_core
     src/core/AppConfig.cpp
+    src/core/AppSettings.cpp
     src/game/AlmanacData.cpp
     src/game/Board.cpp
     src/game/CardSystem.cpp
@@ -45,17 +46,21 @@ target_include_directories(object_project_core PUBLIC include)
 target_compile_features(object_project_core PUBLIC cxx_std_17)
 
 add_executable(pvz_game
+    src/audio/AudioSystem.cpp
     src/main.cpp
     src/ui/AlmanacScreen.cpp
     src/ui/GameScreen.cpp
+    src/ui/IntroScreen.cpp
     src/ui/LevelSelectScreen.cpp
     src/ui/MainMenuScreen.cpp
+    src/ui/SettingsScreen.cpp
+    src/ui/ZombieNoteScreen.cpp
 )
-target_link_libraries(pvz_game PRIVATE object_project_core SFML::Graphics)
+target_link_libraries(pvz_game PRIVATE object_project_core SFML::Graphics SFML::Audio)
 
 if(MSVC)
     target_compile_options(object_project_core PRIVATE /W4 /permissive-)
-    target_compile_options(pvz_game PRIVATE /W4 /permissive-)
+    target_compile_options(pvz_game PRIVATE /W4 /permissive- /utf-8)
 else()
     target_compile_options(object_project_core PRIVATE -Wall -Wextra -Wpedantic)
     target_compile_options(pvz_game PRIVATE -Wall -Wextra -Wpedantic)
@@ -74,6 +79,7 @@ if(BUILD_TESTING)
     add_executable(app_config_tests
         tests/AppConfigTests.cpp
     )
+    add_executable(app_settings_tests tests/AppSettingsTests.cpp)
     add_executable(board_tests tests/BoardTests.cpp)
     add_executable(card_system_tests tests/CardSystemTests.cpp)
     add_executable(sun_system_tests tests/SunSystemTests.cpp)
@@ -84,9 +90,16 @@ if(BUILD_TESTING)
     add_executable(combat_system_tests tests/CombatSystemTests.cpp)
     add_executable(zombie_tests tests/ZombieTests.cpp)
     add_executable(almanac_data_tests tests/AlmanacDataTests.cpp)
+    add_executable(visual_asset_tests tests/VisualAssetTests.cpp)
+    target_link_libraries(visual_asset_tests PRIVATE SFML::Graphics)
+    target_compile_definitions(
+        visual_asset_tests
+        PRIVATE OBJECT_PROJECT_SOURCE_DIR="${CMAKE_SOURCE_DIR}"
+    )
 
     foreach(test_target IN ITEMS
         app_config_tests
+        app_settings_tests
         board_tests
         card_system_tests
         sun_system_tests
@@ -106,4 +119,5 @@ if(BUILD_TESTING)
         endif()
         add_test(NAME ${test_target} COMMAND ${test_target})
     endforeach()
+    add_test(NAME visual_asset_tests COMMAND visual_asset_tests)
 endif()

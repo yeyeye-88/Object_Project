@@ -1,5 +1,6 @@
 #pragma once
 
+#include "game/GameMode.hpp"
 #include "game/PlantType.hpp"
 #include "game/Zombie.hpp"
 
@@ -13,6 +14,7 @@ enum class LevelId : std::size_t {
     Tutorial = 0,
     Garden,
     NightChallenge,
+    EndlessDefense,
     Count,
 };
 
@@ -27,6 +29,7 @@ struct SpawnEvent {
 
 struct LevelDefinition {
     LevelId id{LevelId::Garden};
+    GameMode mode{GameMode::Standard};
     std::string_view name;
     std::string_view description;
     int initialSun{150};

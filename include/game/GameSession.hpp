@@ -45,6 +45,7 @@ public:
     GameState state() const { return state_; }
     bool isPaused() const { return state_ == GameState::Paused; }
     int sun() const { return sun_; }
+    int highestEndlessWave() const { return highestEndlessWave_; }
     bool isPlantAvailable(PlantType type) const {
         return level_.definition().allowsPlant(type);
     }
@@ -63,6 +64,7 @@ private:
     SunSystem suns_;
     CombatSystem combat_;
     LevelSystem level_;
+    int highestEndlessWave_{1};
 };
 
 }  // namespace object_project

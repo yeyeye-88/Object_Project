@@ -23,8 +23,9 @@ const std::vector<PlantType> allPlants{
 const std::array<LevelDefinition, levelCount> definitions{{
     {
         LevelId::Tutorial,
-        "SUNNY START",
-        "LEARN BASIC DEFENSE.",
+        GameMode::Standard,
+        "阳光初战",
+        "学习阳光、种植与基础防守。",
         200,
         2,
         {PlantType::Sunflower, PlantType::Peashooter, PlantType::WallNut},
@@ -38,8 +39,9 @@ const std::array<LevelDefinition, levelCount> definitions{{
     },
     {
         LevelId::Garden,
-        "GARDEN DEFENSE",
-        "FACE ALL SIX ZOMBIE TYPES.",
+        GameMode::Standard,
+        "草坪保卫战",
+        "迎战六种不同的僵尸。",
         150,
         3,
         allPlants,
@@ -60,11 +62,19 @@ const std::array<LevelDefinition, levelCount> definitions{{
     },
     {
         LevelId::NightChallenge,
-        "NIGHT PRESSURE",
-        "LESS SUN. FOUR FAST WAVES.",
+        GameMode::Challenge,
+        "夜幕压力",
+        "阳光更少，连续抵挡四波进攻。",
         100,
         4,
-        allPlants,
+        {
+            PlantType::Peashooter,
+            PlantType::WallNut,
+            PlantType::SnowPea,
+            PlantType::TallNut,
+            PlantType::PotatoMine,
+            PlantType::CherryBomb,
+        },
         {
             {4.0F, 0, ZombieType::Normal, 1},
             {7.0F, 2, ZombieType::Conehead, 1},
@@ -84,6 +94,16 @@ const std::array<LevelDefinition, levelCount> definitions{{
             {46.0F, 3, ZombieType::Newspaper, 4},
             {48.0F, 4, ZombieType::Buckethead, 4},
         },
+    },
+    {
+        LevelId::EndlessDefense,
+        GameMode::Endless,
+        "无尽防守",
+        "尽可能守住更多波次。",
+        200,
+        0,
+        allPlants,
+        {},
     },
 }};
 

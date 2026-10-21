@@ -36,14 +36,19 @@ private:
     ) const;
 
     static constexpr std::array<sf::FloatRect, levelCount> levelBounds{{
-        {{70.0F, 170.0F}, {250.0F, 270.0F}},
-        {{355.0F, 170.0F}, {250.0F, 270.0F}},
-        {{640.0F, 170.0F}, {250.0F, 270.0F}},
+        {{70.0F, 150.0F}, {380.0F, 150.0F}},
+        {{510.0F, 150.0F}, {380.0F, 150.0F}},
+        {{70.0F, 330.0F}, {380.0F, 150.0F}},
+        {{510.0F, 330.0F}, {380.0F, 150.0F}},
     }};
-    static constexpr sf::FloatRect backBounds{{70.0F, 500.0F}, {150.0F, 55.0F}};
+    static constexpr sf::FloatRect backBounds{{70.0F, 520.0F}, {150.0F, 55.0F}};
 
     sf::Font font_;
     bool fontLoaded_{};
+    sf::Texture backgroundTexture_;
+    sf::Texture buttonTexture_;
+    bool backgroundLoaded_{};
+    bool buttonLoaded_{};
 };
 
 }  // namespace object_project

@@ -46,5 +46,21 @@ int main() {
             level.totalZombieCount() == levelDefinition(LevelId::Tutorial).schedule.size(),
         "selecting a level replaces the active schedule"
     );
+
+    level.selectLevel(LevelId::EndlessDefense);
+    passed &= check(level.update(2.9F).empty(), "endless mode waits for its first spawn");
+    const auto endlessFirst = level.update(0.1F);
+    passed &= check(
+        endlessFirst.size() == 1 && endlessFirst.front().wave == 1 &&
+            !level.allSpawned() && !level.finalWaveStarted(),
+        "endless mode starts dynamically and never reports a final wave"
+    );
+    for (int step = 0; step < 20 && level.currentWave() < 2; ++step) {
+        level.update(1.0F);
+    }
+    passed &= check(
+        level.currentWave() >= 2 && level.totalZombieCount() >= 6,
+        "endless generation advances beyond the first wave"
+    );
     return passed ? 0 : 1;
 }
