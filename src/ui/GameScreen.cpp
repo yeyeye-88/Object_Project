@@ -13,8 +13,8 @@ namespace object_project {
 
 namespace {
 
-constexpr float visualBoardLeft = 88.0F;
-constexpr float visualCellWidth = 74.0F;
+constexpr float visualBoardLeft = 175.0F;
+constexpr float visualCellWidth = 625.0F / static_cast<float>(BoardGeometry::columns);
 constexpr float visualScaleX = visualCellWidth / BoardGeometry::cellWidth;
 
 float boardToScreenX(const float x) {
@@ -83,6 +83,24 @@ void placeBottomCentered(
     sprite.setPosition({
         bounds.position.x + (bounds.size.x - width) * 0.5F - local.position.x * scale.x,
         bounds.position.y + bounds.size.y - height - local.position.y * scale.y,
+    });
+}
+
+void placeBottomCenteredAtHeight(
+    sf::Sprite& sprite,
+    const float centerX,
+    const float bottomY,
+    const float targetHeight
+) {
+    const sf::Vector2u source = sprite.getTexture().getSize();
+    if (source.x == 0 || source.y == 0) {
+        return;
+    }
+    const float scale = targetHeight / static_cast<float>(source.y);
+    sprite.setScale({scale, scale});
+    sprite.setPosition({
+        centerX - static_cast<float>(source.x) * scale * 0.5F,
+        bottomY - targetHeight,
     });
 }
 
@@ -507,11 +525,26 @@ void GameScreen::draw(sf::RenderWindow& window) const {
 
 void GameScreen::drawBackground(sf::RenderWindow& window) const {
     if (backgroundLoaded_) {
-        sf::Sprite background(backgroundTexture_);
         const sf::Vector2u source = backgroundTexture_.getSize();
-        background.setScale({0.9F, 600.0F / static_cast<float>(source.y)});
-        background.setPosition({-145.0F, 0.0F});
-        window.draw(background);
+        const auto drawSection = [&](const int sourceLeft,
+                                     const int sourceWidth,
+                                     const float targetLeft,
+                                     const float targetWidth) {
+            sf::Sprite section(backgroundTexture_);
+            section.setTextureRect(sf::IntRect(
+                {sourceLeft, 0},
+                {sourceWidth, static_cast<int>(source.y)}
+            ));
+            section.setScale({
+                targetWidth / static_cast<float>(sourceWidth),
+                600.0F / static_cast<float>(source.y),
+            });
+            section.setPosition({targetLeft, 0.0F});
+            window.draw(section);
+        };
+        drawSection(0, 230, 0.0F, 175.0F);
+        drawSection(230, 770, 175.0F, 625.0F);
+        drawSection(1000, static_cast<int>(source.x) - 1000, 800.0F, 160.0F);
         return;
     }
 
@@ -693,19 +726,12 @@ void GameScreen::drawCombat(sf::RenderWindow& window) const {
         }
         if (zombieTexture) {
             sf::Sprite sprite(*zombieTexture);
-            sf::Vector2f maximumSize{136.0F, 132.0F};
-            if (zombie->type() == ZombieType::PoleVaulting) {
-                maximumSize = {210.0F, 132.0F};
-            } else if (zombie->type() == ZombieType::Newspaper) {
-                maximumSize = {174.0F, 132.0F};
-            }
             const float collisionWidth = CombatSystem::zombieWidth * visualScaleX;
-            placeBottomCentered(
+            placeBottomCenteredAtHeight(
                 sprite,
-                {{zombieX + collisionWidth * 0.5F - maximumSize.x * 0.5F,
-                  BoardGeometry::cellTop(zombie->row()) - 26.0F},
-                 {maximumSize.x, 132.0F}},
-                maximumSize
+                zombieX + collisionWidth * 0.5F,
+                BoardGeometry::cellTop(zombie->row()) + 104.0F,
+                132.0F
             );
             if (zombie->isSlowed()) {
                 sprite.setColor({180, 225, 255});

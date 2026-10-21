@@ -20,11 +20,11 @@ public:
     void draw(sf::RenderWindow& window) const;
 
 private:
-    void drawButton(
+    void drawMenuAsset(
         sf::RenderWindow& window,
+        const sf::Texture& texture,
         const sf::FloatRect& bounds,
-        const char* label,
-        sf::Color color
+        bool highlighted
     ) const;
     void drawText(
         sf::RenderWindow& window,
@@ -34,33 +34,32 @@ private:
         sf::Color color = sf::Color::White
     ) const;
 
-    static constexpr sf::FloatRect playBounds{{540.0F, 105.0F}, {300.0F, 126.0F}};
-    static constexpr sf::FloatRect almanacBounds{{535.0F, 275.0F}, {145.0F, 54.0F}};
-    static constexpr sf::FloatRect settingsBounds{{700.0F, 275.0F}, {145.0F, 54.0F}};
-    static constexpr sf::FloatRect exitBounds{{618.0F, 355.0F}, {145.0F, 50.0F}};
+    static constexpr sf::FloatRect playBounds{{510.0F, 78.0F}, {340.0F, 150.0F}};
+    static constexpr sf::FloatRect puzzleBounds{{525.0F, 218.0F}, {300.0F, 128.0F}};
+    static constexpr sf::FloatRect miniGameBounds{{530.0F, 333.0F}, {300.0F, 127.0F}};
+    static constexpr sf::FloatRect almanacBounds{{385.0F, 432.0F}, {96.0F, 96.0F}};
+    static constexpr sf::FloatRect settingsBounds{{688.0F, 492.0F}, {82.0F, 80.0F}};
+    static constexpr sf::FloatRect helpBounds{{772.0F, 506.0F}, {78.0F, 66.0F}};
+    static constexpr sf::FloatRect exitBounds{{852.0F, 492.0F}, {82.0F, 80.0F}};
 
     sf::Font font_;
     bool fontLoaded_{};
     sf::Texture backgroundTexture_;
     sf::Texture adventureTexture_;
-    sf::Texture adventureHoverTexture_;
+    sf::Texture puzzleTexture_;
+    sf::Texture miniGameTexture_;
     sf::Texture almanacTexture_;
-    sf::Texture almanacHoverTexture_;
-    sf::Texture optionsTexture_;
-    sf::Texture optionsHoverTexture_;
-    sf::Texture quitTexture_;
-    sf::Texture quitHoverTexture_;
-    sf::Texture woodButtonTexture_;
+    sf::Texture welcomeSignTexture_;
+    sf::Texture userSignTexture_;
+    sf::Texture trophyTexture_;
     bool backgroundLoaded_{};
     bool adventureLoaded_{};
-    bool adventureHoverLoaded_{};
+    bool puzzleLoaded_{};
+    bool miniGameLoaded_{};
     bool almanacLoaded_{};
-    bool almanacHoverLoaded_{};
-    bool optionsLoaded_{};
-    bool optionsHoverLoaded_{};
-    bool quitLoaded_{};
-    bool quitHoverLoaded_{};
-    bool woodButtonLoaded_{};
+    bool welcomeSignLoaded_{};
+    bool userSignLoaded_{};
+    bool trophyLoaded_{};
 };
 
 }  // namespace object_project
