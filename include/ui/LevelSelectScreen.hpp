@@ -46,9 +46,11 @@ private:
     sf::Font font_;
     bool fontLoaded_{};
     sf::Texture backgroundTexture_;
-    sf::Texture buttonTexture_;
+    sf::Texture levelButtonTexture_;
+    sf::Texture backButtonTexture_;
     bool backgroundLoaded_{};
-    bool buttonLoaded_{};
+    bool levelButtonLoaded_{};
+    bool backButtonLoaded_{};
 };
 
 }  // namespace object_project

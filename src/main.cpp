@@ -4,6 +4,7 @@
 #include "game/GameSession.hpp"
 #include "ui/AlmanacScreen.hpp"
 #include "ui/GameScreen.hpp"
+#include "ui/HelpScreen.hpp"
 #include "ui/IntroScreen.hpp"
 #include "ui/LevelSelectScreen.hpp"
 #include "ui/MainMenuScreen.hpp"
@@ -33,6 +34,7 @@ enum class AppScreen {
     Game,
     Almanac,
     Settings,
+    Help,
 };
 
 void applyWindowSettings(
@@ -76,6 +78,7 @@ int main() {
     object_project::LevelSelectScreen levelSelect;
     object_project::SettingsScreen settingsScreen(settings);
     object_project::ZombieNoteScreen zombieNote;
+    object_project::HelpScreen help;
     object_project::LevelId pendingLevel = object_project::LevelId::Tutorial;
     AppScreen activeScreen = AppScreen::Intro;
     AppScreen almanacReturnScreen = AppScreen::MainMenu;
@@ -103,6 +106,9 @@ int main() {
                 } else if (action == object_project::MainMenuAction::Settings) {
                     audio.play(object_project::SoundCue::Click);
                     activeScreen = AppScreen::Settings;
+                } else if (action == object_project::MainMenuAction::Help) {
+                    audio.play(object_project::SoundCue::Click);
+                    activeScreen = AppScreen::Help;
                 } else if (action == object_project::MainMenuAction::Exit) {
                     window.close();
                 }
@@ -149,6 +155,9 @@ int main() {
                 } else if (action == object_project::SettingsAction::Back) {
                     activeScreen = AppScreen::MainMenu;
                 }
+            } else if (activeScreen == AppScreen::Help && help.handleEvent(*event, window)) {
+                audio.play(object_project::SoundCue::Click);
+                activeScreen = AppScreen::MainMenu;
             }
         }
 
@@ -192,6 +201,9 @@ int main() {
                 break;
             case AppScreen::Settings:
                 settingsScreen.draw(window);
+                break;
+            case AppScreen::Help:
+                help.draw(window);
                 break;
         }
         window.display();

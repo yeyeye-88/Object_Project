@@ -17,6 +17,10 @@
 `D:\Object\ObjectOriented_Lab\PvZ (2.1)\PvZ_Final\PvZ\assets\Screen`，
 用于中文冒险按钮、图鉴面板、僵尸字条、卡槽和铲子槽；程序不会在这些图片的原有文字上重复叠字。
 
+`pvz/ui/screens/` 直接复制自
+`D:\Object\Plants-vs-zombies\663\images\interface`，用于帮助纸张、设置石碑、
+石质按钮、图鉴底板和结算提示；仅在原图留白区域绘制中文功能文字，没有生成或改画素材。
+
 ## `sprites/character_atlas.png`
 
 该文件是前一版实验图集。根据当前美术要求，程序已不再加载或显示它；暂时保留文件，等待确认后再执行删除。

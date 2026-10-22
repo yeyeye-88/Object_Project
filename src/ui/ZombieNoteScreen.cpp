@@ -9,7 +9,7 @@ namespace object_project {
 
 namespace {
 
-constexpr sf::FloatRect continueBounds{{375.0F, 515.0F}, {210.0F, 52.0F}};
+constexpr sf::FloatRect continueBounds{{390.0F, 520.0F}, {180.0F, 46.0F}};
 
 }  // namespace
 
@@ -17,7 +17,7 @@ ZombieNoteScreen::ZombieNoteScreen()
     : fontLoaded_(ui::loadChineseFont(font_)),
       lawnLoaded_(lawnTexture_.loadFromFile("assets/background/lawn.jpg")),
       buttonLoaded_(buttonTexture_.loadFromFile(
-          "assets/pvz/ui/reference/wood_button.png"
+          "assets/pvz/ui/screens/small_button.png"
       )) {
     for (std::size_t index = 0; index < noteTextures_.size(); ++index) {
         noteLoaded_[index] = noteTextures_[index].loadFromFile(
@@ -73,8 +73,8 @@ void ZombieNoteScreen::draw(sf::RenderWindow& window) const {
         window.draw(button);
     }
     if (fontLoaded_) {
-        sf::Text label(font_, ui::utf8("开始关卡"), 25);
-        label.setFillColor({255, 217, 93});
+        sf::Text label(font_, ui::utf8("开始关卡"), 22);
+        label.setFillColor({238, 234, 206});
         ui::centerText(label, continueBounds);
         window.draw(label);
     }

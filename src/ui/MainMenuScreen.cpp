@@ -2,6 +2,7 @@
 
 #include "ui/UiText.hpp"
 
+#include <algorithm>
 #include <string>
 
 namespace object_project {
@@ -12,32 +13,36 @@ bool contains(const sf::FloatRect& bounds, const sf::Vector2f point) {
     return bounds.contains(point);
 }
 
+void fitSprite(sf::Sprite& sprite, const sf::Vector2f maximumSize) {
+    const sf::Vector2u source = sprite.getTexture().getSize();
+    if (source.x == 0 || source.y == 0) {
+        return;
+    }
+    const float scale = std::min(
+        maximumSize.x / static_cast<float>(source.x),
+        maximumSize.y / static_cast<float>(source.y)
+    );
+    sprite.setScale({scale, scale});
+}
+
 }  // namespace
 
 MainMenuScreen::MainMenuScreen()
     : fontLoaded_(ui::loadChineseFont(font_)),
       backgroundLoaded_(backgroundTexture_.loadFromFile("assets/pvz/ui/reference/main_menu.png")),
       adventureLoaded_(adventureTexture_.loadFromFile(
-          "assets/pvz/ui/reference/adventure_cn.png"
+          "assets/pvz/ui/main_menu/adventure.png"
       )),
-      adventureHoverLoaded_(
-          adventureHoverTexture_.loadFromFile(
-              "assets/pvz/ui/reference/adventure_cn_hover.png"
-          )
-      ),
-      almanacLoaded_(almanacTexture_.loadFromFile("assets/pvz/ui/selectorscreen_almanac.png")),
-      almanacHoverLoaded_(almanacHoverTexture_.loadFromFile(
-          "assets/pvz/ui/selectorscreen_almanachighlight.png"
+      puzzleLoaded_(puzzleTexture_.loadFromFile("assets/pvz/ui/main_menu/puzzle.png")),
+      miniGameLoaded_(miniGameTexture_.loadFromFile("assets/pvz/ui/main_menu/minigames.png")),
+      almanacLoaded_(almanacTexture_.loadFromFile("assets/pvz/ui/main_menu/almanac.png")),
+      welcomeSignLoaded_(welcomeSignTexture_.loadFromFile(
+          "assets/pvz/ui/main_menu/welcome_sign.png"
       )),
-      optionsLoaded_(optionsTexture_.loadFromFile("assets/pvz/ui/selectorscreen_options1.png")),
-      optionsHoverLoaded_(optionsHoverTexture_.loadFromFile(
-          "assets/pvz/ui/selectorscreen_options2.png"
+      userSignLoaded_(userSignTexture_.loadFromFile(
+          "assets/pvz/ui/main_menu/user_sign.png"
       )),
-      quitLoaded_(quitTexture_.loadFromFile("assets/pvz/ui/selectorscreen_quit1.png")),
-      quitHoverLoaded_(quitHoverTexture_.loadFromFile("assets/pvz/ui/selectorscreen_quit2.png")),
-      woodButtonLoaded_(woodButtonTexture_.loadFromFile(
-          "assets/pvz/ui/reference/wood_button.png"
-      )) {}
+      trophyLoaded_(trophyTexture_.loadFromFile("assets/pvz/ui/main_menu/trophy.png")) {}
 
 MainMenuAction MainMenuScreen::handleEvent(
     const sf::Event& event,
@@ -57,6 +62,9 @@ MainMenuAction MainMenuScreen::handleEvent(
         if (contains(settingsBounds, point)) {
             return MainMenuAction::Settings;
         }
+        if (contains(helpBounds, point)) {
+            return MainMenuAction::Help;
+        }
         if (contains(exitBounds, point)) {
             return MainMenuAction::Exit;
         }
@@ -70,7 +78,11 @@ void MainMenuScreen::draw(sf::RenderWindow& window) const {
     window.draw(frame);
     if (backgroundLoaded_) {
         sf::Sprite background(backgroundTexture_);
-        background.setPosition({30.0F, 0.0F});
+        const sf::Vector2u source = backgroundTexture_.getSize();
+        background.setScale({
+            960.0F / static_cast<float>(source.x),
+            600.0F / static_cast<float>(source.y),
+        });
         window.draw(background);
     } else {
         sf::RectangleShape background({960.0F, 600.0F});
@@ -79,59 +91,81 @@ void MainMenuScreen::draw(sf::RenderWindow& window) const {
     }
 
     const sf::Vector2f mouse = window.mapPixelToCoords(sf::Mouse::getPosition(window));
-    const sf::Texture* adventure = contains(playBounds, mouse) && adventureHoverLoaded_
-        ? &adventureHoverTexture_
-        : adventureLoaded_ ? &adventureTexture_ : nullptr;
-    if (adventure) {
-        sf::Sprite button(*adventure);
-        const sf::Vector2u source = adventure->getSize();
-        button.setScale({
-            playBounds.size.x / static_cast<float>(source.x),
-            playBounds.size.y / static_cast<float>(source.y),
-        });
-        button.setPosition(playBounds.position);
-        window.draw(button);
-    } else {
-        drawButton(window, playBounds, "选择关卡", {70, 132, 68});
+    if (welcomeSignLoaded_) {
+        sf::Sprite welcome(welcomeSignTexture_);
+        welcome.setPosition({34.0F, 20.0F});
+        window.draw(welcome);
     }
-    drawButton(window, almanacBounds, "图鉴", {130, 65, 27});
-    drawButton(window, settingsBounds, "设置", {130, 65, 27});
-    drawButton(window, exitBounds, "退出", {130, 65, 27});
+    if (userSignLoaded_) {
+        drawMenuAsset(
+            window,
+            userSignTexture_,
+            {{36.0F, 142.0F}, {291.0F, 71.0F}},
+            contains({{36.0F, 142.0F}, {291.0F, 71.0F}}, mouse)
+        );
+    }
+    if (trophyLoaded_) {
+        sf::Sprite trophy(trophyTexture_);
+        fitSprite(trophy, {150.0F, 120.0F});
+        trophy.setPosition({58.0F, 410.0F});
+        window.draw(trophy);
+    }
+
+    if (adventureLoaded_) {
+        drawMenuAsset(window, adventureTexture_, playBounds, contains(playBounds, mouse));
+    }
+    if (puzzleLoaded_) {
+        drawMenuAsset(window, puzzleTexture_, puzzleBounds, false);
+    }
+    if (miniGameLoaded_) {
+        drawMenuAsset(window, miniGameTexture_, miniGameBounds, false);
+    }
+    if (almanacLoaded_) {
+        drawMenuAsset(window, almanacTexture_, almanacBounds, contains(almanacBounds, mouse));
+    }
+
+    drawText(
+        window,
+        "选项",
+        contains(settingsBounds, mouse) ? 24U : 22U,
+        {700.0F, 507.0F},
+        contains(settingsBounds, mouse) ? sf::Color(255, 245, 155) : sf::Color(64, 55, 43)
+    );
+    drawText(
+        window,
+        "帮助",
+        contains(helpBounds, mouse) ? 22U : 20U,
+        {784.0F, 520.0F},
+        contains(helpBounds, mouse) ? sf::Color(255, 245, 155) : sf::Color(64, 55, 43)
+    );
+    drawText(
+        window,
+        "退出",
+        contains(exitBounds, mouse) ? 24U : 22U,
+        {864.0F, 510.0F},
+        contains(exitBounds, mouse) ? sf::Color(255, 245, 155) : sf::Color(64, 55, 43)
+    );
 }
 
-void MainMenuScreen::drawButton(
+void MainMenuScreen::drawMenuAsset(
     sf::RenderWindow& window,
+    const sf::Texture& texture,
     const sf::FloatRect& bounds,
-    const char* label,
-    const sf::Color color
+    const bool highlighted
 ) const {
-    const bool hovered = bounds.contains(window.mapPixelToCoords(sf::Mouse::getPosition(window)));
-    if (woodButtonLoaded_) {
-        sf::Sprite button(woodButtonTexture_);
-        const sf::Vector2u source = woodButtonTexture_.getSize();
-        button.setScale({
-            bounds.size.x / static_cast<float>(source.x),
-            bounds.size.y / static_cast<float>(source.y),
-        });
-        button.setPosition(bounds.position);
-        if (hovered) {
-            button.setColor({255, 225, 175});
-        }
-        window.draw(button);
-    } else {
-        sf::RectangleShape button(bounds.size);
-        button.setPosition(bounds.position);
-        button.setFillColor(color);
-        button.setOutlineColor({236, 211, 128});
-        button.setOutlineThickness(3.0F);
-        window.draw(button);
-    }
-    if (fontLoaded_) {
-        sf::Text text(font_, ui::utf8(label), 25);
-        text.setFillColor({255, 218, 82});
-        ui::centerText(text, bounds);
-        window.draw(text);
-    }
+    const sf::Vector2u source = texture.getSize();
+    const int frameHeight = static_cast<int>(source.y / 2U);
+    sf::Sprite sprite(texture);
+    sprite.setTextureRect(sf::IntRect(
+        {0, highlighted ? frameHeight : 0},
+        {static_cast<int>(source.x), frameHeight}
+    ));
+    sprite.setScale({
+        bounds.size.x / static_cast<float>(source.x),
+        bounds.size.y / static_cast<float>(frameHeight),
+    });
+    sprite.setPosition(bounds.position);
+    window.draw(sprite);
 }
 
 void MainMenuScreen::drawText(
