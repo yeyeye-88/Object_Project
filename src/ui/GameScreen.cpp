@@ -58,6 +58,23 @@ void drawButton(
     window.draw(button);
 }
 
+void drawThemedButton(
+    sf::RenderWindow& window,
+    const sf::Texture& texture,
+    const sf::FloatRect bounds
+) {
+    const sf::Vector2u source = texture.getSize();
+    const unsigned int frameHeight = source.y / 2U;
+    sf::Sprite button(texture);
+    button.setTextureRect(sf::IntRect(
+        {0, 0},
+        {static_cast<int>(source.x), static_cast<int>(frameHeight)}
+    ));
+    button.setScale({bounds.size.x / source.x, bounds.size.y / frameHeight});
+    button.setPosition(bounds.position);
+    window.draw(button);
+}
+
 void fitSprite(sf::Sprite& sprite, const sf::Vector2f targetSize) {
     const sf::Vector2u sourceSize = sprite.getTexture().getSize();
     if (sourceSize.x == 0 || sourceSize.y == 0) {
@@ -257,6 +274,18 @@ GameScreen::GameScreen(GameSession& session) : session_(session) {
     shovelSlotLoaded_ = shovelSlotTexture_.loadFromFile(
         "assets/pvz/ui/reference/shovel_slot.png"
     );
+    overlayPanelLoaded_ = overlayPanelTexture_.loadFromFile(
+        "assets/pvz/ui/screens/options_menu.png"
+    );
+    overlayButtonLoaded_ = overlayButtonTexture_.loadFromFile(
+        "assets/pvz/ui/screens/stone_button.png"
+    );
+    resultPanelLoaded_ = resultPanelTexture_.loadFromFile(
+        "assets/pvz/ui/screens/award_screen.jpg"
+    );
+    zombiesWonLoaded_ = zombiesWonTexture_.loadFromFile(
+        "assets/pvz/ui/screens/zombies_won.png"
+    );
     mowerLoaded_ = mowerTexture_.loadFromFile("assets/pvz/ui/lawn_mower.png");
     peaLoaded_ = peaTexture_.loadFromFile("assets/pvz/projectiles/pea.png");
     frozenPeaLoaded_ = frozenPeaTexture_.loadFromFile("assets/pvz/projectiles/snow_pea.png");
@@ -446,11 +475,11 @@ void GameScreen::handleLeftClick(const sf::Vector2f position) {
     }
 
     if (session_.state() == GameState::Won || session_.state() == GameState::Lost) {
-        if (contains(restartBounds, position)) {
+        if (contains(resultRestartBounds, position)) {
             session_.restart();
             selectedPlant_.reset();
             shovelSelected_ = false;
-        } else if (contains(menuBounds, position)) {
+        } else if (contains(resultMenuBounds, position)) {
             menuRequested_ = true;
         }
         return;
@@ -598,45 +627,7 @@ void GameScreen::drawCombat(sf::RenderWindow& window) const {
     for (const LawnMower& mower : session_.combat().mowers()) {
         const float mowerX = boardToScreenX(mower.x);
         if (mower.state == LawnMowerState::Used) {
-            const float laneTop = BoardGeometry::cellTop(mower.row);
-
-            sf::RectangleShape emptyBay({48.0F, 34.0F});
-            emptyBay.setPosition({boardToScreenX(CombatSystem::mowerStartX), laneTop + 54.0F});
-            emptyBay.setFillColor({42, 42, 38, 125});
-            emptyBay.setOutlineColor({155, 58, 45, 220});
-            emptyBay.setOutlineThickness(3.0F);
-            window.draw(emptyBay);
-
-            for (const float yOffset : {66.0F, 82.0F}) {
-                for (int column = 0; column < BoardGeometry::columns; ++column) {
-                    sf::RectangleShape track({visualCellWidth * 0.62F, 4.0F});
-                    track.setPosition({
-                        visualCellLeft(column) + visualCellWidth * 0.18F,
-                        laneTop + yOffset,
-                    });
-                    track.setFillColor({25, 30, 22, 72});
-                    window.draw(track);
-                }
-            }
-
-            sf::ConvexShape warning(3);
-            const float emptyBayX = boardToScreenX(CombatSystem::mowerStartX);
-            warning.setPoint(0, {emptyBayX + 24.0F, laneTop + 8.0F});
-            warning.setPoint(1, {emptyBayX + 7.0F, laneTop + 42.0F});
-            warning.setPoint(2, {emptyBayX + 41.0F, laneTop + 42.0F});
-            warning.setFillColor({205, 55, 42, 235});
-            warning.setOutlineColor({255, 214, 118});
-            warning.setOutlineThickness(2.0F);
-            window.draw(warning);
-
-            sf::RectangleShape warningStem({4.0F, 15.0F});
-            warningStem.setPosition({emptyBayX + 22.0F, laneTop + 18.0F});
-            warningStem.setFillColor(sf::Color::White);
-            window.draw(warningStem);
-            sf::CircleShape warningDot(2.5F);
-            warningDot.setPosition({emptyBayX + 21.5F, laneTop + 35.0F});
-            warningDot.setFillColor(sf::Color::White);
-            window.draw(warningDot);
+            // The original game leaves the lawn unchanged after a mower is consumed.
             continue;
         }
         if (mowerLoaded_) {
@@ -727,11 +718,12 @@ void GameScreen::drawCombat(sf::RenderWindow& window) const {
         if (zombieTexture) {
             sf::Sprite sprite(*zombieTexture);
             const float collisionWidth = CombatSystem::zombieWidth * visualScaleX;
+            const bool poleVaulting = zombie->type() == ZombieType::PoleVaulting;
             placeBottomCenteredAtHeight(
                 sprite,
-                zombieX + collisionWidth * 0.5F,
+                zombieX + collisionWidth * 0.5F - (poleVaulting ? 52.0F : 0.0F),
                 BoardGeometry::cellTop(zombie->row()) + 104.0F,
-                132.0F
+                poleVaulting ? 182.0F : 132.0F
             );
             if (zombie->isSlowed()) {
                 sprite.setColor({180, 225, 255});
@@ -1122,38 +1114,34 @@ void GameScreen::drawPauseOverlay(sf::RenderWindow& window) const {
     shade.setFillColor({10, 20, 12, 165});
     window.draw(shade);
 
-    drawButton(window, resumeBounds, {62, 128, 67, 245});
-    sf::ConvexShape play(3);
-    play.setPoint(0, {402.0F, 274.0F});
-    play.setPoint(1, {402.0F, 306.0F});
-    play.setPoint(2, {432.0F, 290.0F});
-    play.setFillColor(sf::Color::White);
-    window.draw(play);
+    if (overlayPanelLoaded_) {
+        sf::Sprite panel(overlayPanelTexture_);
+        panel.setPosition({275.0F, 55.0F});
+        window.draw(panel);
+    }
+    if (feedbackFontLoaded_) {
+        sf::Text title(feedbackFont_, ui::utf8("游戏暂停"), 30);
+        title.setFillColor({230, 229, 215});
+        ui::centerText(title, {{360.0F, 125.0F}, {240.0F, 52.0F}});
+        window.draw(title);
+    }
 
-    drawButton(window, restartBounds, {133, 91, 46, 245});
-    sf::CircleShape restart(17.0F, 28);
-    restart.setPosition({528.0F, 273.0F});
-    restart.setFillColor(sf::Color::Transparent);
-    restart.setOutlineColor(sf::Color::White);
-    restart.setOutlineThickness(5.0F);
-    window.draw(restart);
-    sf::RectangleShape cut({18.0F, 12.0F});
-    cut.setPosition({526.0F, 269.0F});
-    cut.setFillColor({133, 91, 46});
-    window.draw(cut);
-    sf::ConvexShape arrow(3);
-    arrow.setPoint(0, {523.0F, 280.0F});
-    arrow.setPoint(1, {540.0F, 273.0F});
-    arrow.setPoint(2, {538.0F, 290.0F});
-    arrow.setFillColor(sf::Color::White);
-    window.draw(arrow);
-
-    drawButton(window, menuBounds, {67, 83, 105, 245});
-    for (int line = 0; line < 3; ++line) {
-        sf::RectangleShape bar({54.0F, 5.0F});
-        bar.setPosition({468.0F, 353.0F + static_cast<float>(line) * 12.0F});
-        bar.setFillColor(sf::Color::White);
-        window.draw(bar);
+    for (const auto& item : std::array<std::pair<sf::FloatRect, const char*>, 3>{{
+             {resumeBounds, "继续游戏"},
+             {restartBounds, "重新开始"},
+             {menuBounds, "返回选关"},
+         }}) {
+        if (overlayButtonLoaded_) {
+            drawThemedButton(window, overlayButtonTexture_, item.first);
+        } else {
+            drawButton(window, item.first, {82, 91, 105, 245});
+        }
+        if (feedbackFontLoaded_) {
+            sf::Text label(feedbackFont_, ui::utf8(item.second), 19);
+            label.setFillColor({236, 234, 218});
+            ui::centerText(label, item.first);
+            window.draw(label);
+        }
     }
 }
 
@@ -1163,42 +1151,49 @@ void GameScreen::drawResultOverlay(sf::RenderWindow& window) const {
     shade.setFillColor(won ? sf::Color(18, 75, 32, 190) : sf::Color(85, 20, 18, 195));
     window.draw(shade);
 
-    if (won) {
-        sf::RectangleShape first({18.0F, 65.0F});
-        first.setPosition({405.0F, 180.0F});
-        first.setRotation(sf::degrees(-42.0F));
-        first.setFillColor({245, 240, 150});
-        window.draw(first);
-        sf::RectangleShape second({18.0F, 115.0F});
-        second.setPosition({452.0F, 228.0F});
-        second.setRotation(sf::degrees(-135.0F));
-        second.setFillColor({245, 240, 150});
-        window.draw(second);
-    } else {
-        for (const float angle : {45.0F, -45.0F}) {
-            sf::RectangleShape bar({20.0F, 120.0F});
-            bar.setPosition({474.0F, 175.0F});
-            bar.setOrigin({10.0F, 60.0F});
-            bar.setRotation(sf::degrees(angle));
-            bar.setFillColor({255, 210, 170});
-            window.draw(bar);
-        }
+    if (won && resultPanelLoaded_) {
+        sf::Sprite panel(resultPanelTexture_);
+        panel.setScale({0.8F, 0.8F});
+        panel.setPosition({160.0F, 55.0F});
+        window.draw(panel);
+    }
+    if (!won && zombiesWonLoaded_) {
+        sf::Sprite message(zombiesWonTexture_);
+        fitSprite(message, {430.0F, 375.0F});
+        const sf::FloatRect local = message.getLocalBounds();
+        const sf::Vector2f scale = message.getScale();
+        message.setPosition({
+            480.0F - local.size.x * scale.x * 0.5F,
+            62.0F,
+        });
+        window.draw(message);
+    }
+    if (won && feedbackFontLoaded_) {
+        sf::Text title(feedbackFont_, ui::utf8("关卡完成"), 36);
+        title.setFillColor({255, 226, 126});
+        ui::centerText(title, {{260.0F, 68.0F}, {440.0F, 72.0F}});
+        window.draw(title);
+        sf::Text detail(feedbackFont_, ui::utf8("花园暂时安全了"), 22);
+        detail.setFillColor({87, 48, 26});
+        ui::centerText(detail, {{350.0F, 340.0F}, {260.0F, 80.0F}});
+        window.draw(detail);
     }
 
-    drawButton(window, restartBounds, won ? sf::Color(62, 128, 67, 245) : sf::Color(133, 91, 46, 245));
-    sf::CircleShape restart(17.0F, 28);
-    restart.setPosition({528.0F, 273.0F});
-    restart.setFillColor(sf::Color::Transparent);
-    restart.setOutlineColor(sf::Color::White);
-    restart.setOutlineThickness(5.0F);
-    window.draw(restart);
-
-    drawButton(window, menuBounds, {67, 83, 105, 245});
-    for (int line = 0; line < 3; ++line) {
-        sf::RectangleShape bar({54.0F, 5.0F});
-        bar.setPosition({468.0F, 353.0F + static_cast<float>(line) * 12.0F});
-        bar.setFillColor(sf::Color::White);
-        window.draw(bar);
+    for (const auto& item : std::array<std::pair<sf::FloatRect, const char*>, 2>{{
+             {resultRestartBounds, "重新开始"},
+             {resultMenuBounds, "返回选关"},
+         }}) {
+        if (overlayButtonLoaded_) {
+            drawThemedButton(window, overlayButtonTexture_, item.first);
+        } else {
+            drawButton(window, item.first, {82, 91, 105, 245});
+        }
+        if (feedbackFontLoaded_) {
+            sf::Text label(feedbackFont_, ui::utf8(item.second), 19);
+            label.setFillColor({236, 234, 218});
+            ui::centerText(label, item.first);
+            window.draw(label);
+        }
     }
 }
 

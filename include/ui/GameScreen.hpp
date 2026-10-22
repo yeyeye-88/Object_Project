@@ -41,9 +41,11 @@ private:
     static constexpr sf::FloatRect shovelBounds{{600.0F, 15.0F}, {62.0F, 62.0F}};
     static constexpr sf::FloatRect almanacBounds{{790.0F, 18.0F}, {70.0F, 42.0F}};
     static constexpr sf::FloatRect pauseBounds{{874.0F, 18.0F}, {54.0F, 42.0F}};
-    static constexpr sf::FloatRect resumeBounds{{365.0F, 260.0F}, {100.0F, 60.0F}};
-    static constexpr sf::FloatRect restartBounds{{495.0F, 260.0F}, {100.0F, 60.0F}};
-    static constexpr sf::FloatRect menuBounds{{430.0F, 340.0F}, {130.0F, 52.0F}};
+    static constexpr sf::FloatRect resumeBounds{{340.0F, 275.0F}, {130.0F, 48.0F}};
+    static constexpr sf::FloatRect restartBounds{{490.0F, 275.0F}, {130.0F, 48.0F}};
+    static constexpr sf::FloatRect menuBounds{{390.0F, 350.0F}, {180.0F, 50.0F}};
+    static constexpr sf::FloatRect resultRestartBounds{{335.0F, 490.0F}, {130.0F, 48.0F}};
+    static constexpr sf::FloatRect resultMenuBounds{{495.0F, 490.0F}, {130.0F, 48.0F}};
 
     static const std::array<CardLayout, plantTypeCount>& cardLayouts();
     static sf::Color plantColor(PlantType type, std::uint8_t alpha = 255);
@@ -96,6 +98,10 @@ private:
     sf::Texture shovelTexture_;
     sf::Texture chooserTexture_;
     sf::Texture shovelSlotTexture_;
+    sf::Texture overlayPanelTexture_;
+    sf::Texture overlayButtonTexture_;
+    sf::Texture resultPanelTexture_;
+    sf::Texture zombiesWonTexture_;
     bool backgroundLoaded_{};
     std::array<bool, plantTypeCount> cardLoaded_{};
     std::array<bool, plantTypeCount> plantLoaded_{};
@@ -112,6 +118,10 @@ private:
     bool shovelLoaded_{};
     bool chooserLoaded_{};
     bool shovelSlotLoaded_{};
+    bool overlayPanelLoaded_{};
+    bool overlayButtonLoaded_{};
+    bool resultPanelLoaded_{};
+    bool zombiesWonLoaded_{};
     sf::Font feedbackFont_;
     bool feedbackFontLoaded_{};
 };

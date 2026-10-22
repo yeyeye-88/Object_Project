@@ -8,14 +8,14 @@ namespace object_project {
 
 namespace {
 
-constexpr sf::FloatRect musicMinus{{540.0F, 185.0F}, {50.0F, 46.0F}};
-constexpr sf::FloatRect musicPlus{{760.0F, 185.0F}, {50.0F, 46.0F}};
-constexpr sf::FloatRect effectsMinus{{540.0F, 255.0F}, {50.0F, 46.0F}};
-constexpr sf::FloatRect effectsPlus{{760.0F, 255.0F}, {50.0F, 46.0F}};
-constexpr sf::FloatRect resolutionMinus{{540.0F, 325.0F}, {50.0F, 46.0F}};
-constexpr sf::FloatRect resolutionPlus{{760.0F, 325.0F}, {50.0F, 46.0F}};
-constexpr sf::FloatRect fullscreenBounds{{540.0F, 395.0F}, {270.0F, 46.0F}};
-constexpr sf::FloatRect backBounds{{365.0F, 500.0F}, {230.0F, 58.0F}};
+constexpr sf::FloatRect musicMinus{{430.0F, 184.0F}, {48.0F, 42.0F}};
+constexpr sf::FloatRect musicPlus{{590.0F, 184.0F}, {48.0F, 42.0F}};
+constexpr sf::FloatRect effectsMinus{{430.0F, 244.0F}, {48.0F, 42.0F}};
+constexpr sf::FloatRect effectsPlus{{590.0F, 244.0F}, {48.0F, 42.0F}};
+constexpr sf::FloatRect resolutionMinus{{430.0F, 304.0F}, {48.0F, 42.0F}};
+constexpr sf::FloatRect resolutionPlus{{590.0F, 304.0F}, {48.0F, 42.0F}};
+constexpr sf::FloatRect fullscreenBounds{{430.0F, 364.0F}, {208.0F, 44.0F}};
+constexpr sf::FloatRect backBounds{{390.0F, 468.0F}, {180.0F, 52.0F}};
 
 bool contains(const sf::FloatRect bounds, const sf::Vector2f point) {
     return bounds.contains(point);
@@ -29,8 +29,9 @@ SettingsScreen::SettingsScreen(AppSettings& settings)
       backgroundLoaded_(backgroundTexture_.loadFromFile(
           "assets/pvz/ui/reference/main_menu.png"
       )),
+      panelLoaded_(panelTexture_.loadFromFile("assets/pvz/ui/screens/options_menu.png")),
       buttonLoaded_(buttonTexture_.loadFromFile(
-          "assets/pvz/ui/reference/wood_button.png"
+          "assets/pvz/ui/screens/stone_button.png"
       )) {}
 
 SettingsAction SettingsScreen::handleEvent(
@@ -78,24 +79,23 @@ void SettingsScreen::draw(sf::RenderWindow& window) const {
     sf::RectangleShape shade({960.0F, 600.0F});
     shade.setFillColor({13, 28, 18, 150});
     window.draw(shade);
-    sf::RectangleShape panel({650.0F, 400.0F});
-    panel.setPosition({155.0F, 125.0F});
-    panel.setFillColor({91, 51, 29, 245});
-    panel.setOutlineColor({211, 150, 65});
-    panel.setOutlineThickness(4.0F);
-    window.draw(panel);
+    if (panelLoaded_) {
+        sf::Sprite panel(panelTexture_);
+        panel.setScale({1.04F, 1.04F});
+        panel.setPosition({267.0F, 46.0F});
+        window.draw(panel);
+    }
 
-    drawText(window, "设置", 46, {430.0F, 55.0F}, {250, 222, 116});
-    drawRow(window, 185.0F, "音乐音量", std::to_string(settings_.musicVolume()) + "%");
-    drawRow(window, 255.0F, "音效音量", std::to_string(settings_.effectsVolume()) + "%");
+    drawRow(window, 184.0F, "音乐音量", std::to_string(settings_.musicVolume()) + "%");
+    drawRow(window, 244.0F, "音效音量", std::to_string(settings_.effectsVolume()) + "%");
     const WindowResolution resolution = settings_.resolution();
     drawRow(
         window,
-        325.0F,
+        304.0F,
         "分辨率",
         std::to_string(resolution.width) + " x " + std::to_string(resolution.height)
     );
-    drawText(window, "显示模式", 24, {220.0F, 404.0F});
+    drawText(window, "显示模式", 21, {324.0F, 373.0F}, {224, 224, 214});
     drawButton(window, fullscreenBounds, settings_.fullscreen() ? "全屏" : "窗口");
     drawButton(window, backBounds, "返回");
 }
@@ -106,10 +106,10 @@ void SettingsScreen::drawRow(
     const std::string_view label,
     const std::string& value
 ) const {
-    drawText(window, label, 24, {220.0F, y + 8.0F});
-    drawButton(window, {{540.0F, y}, {50.0F, 46.0F}}, "-");
-    drawText(window, value, 21, {610.0F, y + 10.0F}, {244, 229, 166});
-    drawButton(window, {{760.0F, y}, {50.0F, 46.0F}}, "+");
+    drawText(window, label, 21, {324.0F, y + 8.0F}, {224, 224, 214});
+    drawButton(window, {{430.0F, y}, {48.0F, 42.0F}}, "-");
+    drawText(window, value, 18, {490.0F, y + 10.0F}, {244, 229, 166});
+    drawButton(window, {{590.0F, y}, {48.0F, 42.0F}}, "+");
 }
 
 void SettingsScreen::drawButton(
@@ -121,7 +121,15 @@ void SettingsScreen::drawButton(
     if (buttonLoaded_) {
         sf::Sprite themedButton(buttonTexture_);
         const sf::Vector2u source = buttonTexture_.getSize();
-        themedButton.setScale({bounds.size.x / source.x, bounds.size.y / source.y});
+        const unsigned int frameHeight = source.y / 2U;
+        themedButton.setTextureRect(sf::IntRect(
+            {0, 0},
+            {static_cast<int>(source.x), static_cast<int>(frameHeight)}
+        ));
+        themedButton.setScale({
+            bounds.size.x / static_cast<float>(source.x),
+            bounds.size.y / static_cast<float>(frameHeight),
+        });
         themedButton.setPosition(bounds.position);
         window.draw(themedButton);
     } else {

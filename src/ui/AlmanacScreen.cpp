@@ -11,11 +11,11 @@ namespace object_project {
 
 namespace {
 
-constexpr sf::FloatRect plantTab{{90.0F, 515.0F}, {145.0F, 48.0F}};
-constexpr sf::FloatRect zombieTab{{250.0F, 515.0F}, {145.0F, 48.0F}};
-constexpr sf::FloatRect previousButton{{155.0F, 35.0F}, {115.0F, 62.0F}};
-constexpr sf::FloatRect nextButton{{690.0F, 35.0F}, {115.0F, 62.0F}};
-constexpr sf::FloatRect backButton{{725.0F, 515.0F}, {145.0F, 48.0F}};
+constexpr sf::FloatRect plantTab{{65.0F, 525.0F}, {140.0F, 45.0F}};
+constexpr sf::FloatRect zombieTab{{220.0F, 525.0F}, {140.0F, 45.0F}};
+constexpr sf::FloatRect previousButton{{130.0F, 22.0F}, {100.0F, 58.0F}};
+constexpr sf::FloatRect nextButton{{730.0F, 22.0F}, {100.0F, 58.0F}};
+constexpr sf::FloatRect backButton{{755.0F, 525.0F}, {140.0F, 45.0F}};
 
 void drawPanel(sf::RenderWindow& window, const sf::FloatRect& bounds, const sf::Color color) {
     sf::RectangleShape panel(bounds.size);
@@ -24,6 +24,24 @@ void drawPanel(sf::RenderWindow& window, const sf::FloatRect& bounds, const sf::
     panel.setOutlineColor({231, 211, 135});
     panel.setOutlineThickness(2.0F);
     window.draw(panel);
+}
+
+void drawStoneButton(
+    sf::RenderWindow& window,
+    const sf::Texture& texture,
+    const sf::FloatRect bounds,
+    const bool selected
+) {
+    const sf::Vector2u source = texture.getSize();
+    const unsigned int frameHeight = source.y / 2U;
+    sf::Sprite button(texture);
+    button.setTextureRect(sf::IntRect(
+        {0, selected ? static_cast<int>(frameHeight) : 0},
+        {static_cast<int>(source.x), static_cast<int>(frameHeight)}
+    ));
+    button.setScale({bounds.size.x / source.x, bounds.size.y / frameHeight});
+    button.setPosition(bounds.position);
+    window.draw(button);
 }
 
 void fitCentered(sf::Sprite& sprite, const sf::FloatRect bounds) {
@@ -44,9 +62,8 @@ void fitCentered(sf::Sprite& sprite, const sf::FloatRect bounds) {
 
 AlmanacScreen::AlmanacScreen() {
     fontLoaded_ = ui::loadChineseFont(font_);
-    backgroundLoaded_ = backgroundTexture_.loadFromFile("assets/background/lawn.jpg");
-    panelLoaded_ = panelTexture_.loadFromFile("assets/pvz/ui/reference/almanac_panel.png");
-    buttonLoaded_ = buttonTexture_.loadFromFile("assets/pvz/ui/reference/wood_button.png");
+    backgroundLoaded_ = backgroundTexture_.loadFromFile("assets/pvz/ui/screens/almanac_index.jpg");
+    buttonLoaded_ = buttonTexture_.loadFromFile("assets/pvz/ui/screens/stone_button.png");
 
     const std::array<std::string, plantTypeCount> plantPaths{
         "assets/pvz/plants/sunflower.png",
@@ -117,16 +134,9 @@ bool AlmanacScreen::handleEvent(
 void AlmanacScreen::draw(sf::RenderWindow& window) const {
     if (backgroundLoaded_) {
         sf::Sprite background(backgroundTexture_);
+        const sf::Vector2u source = backgroundTexture_.getSize();
+        background.setScale({960.0F / source.x, 600.0F / source.y});
         window.draw(background);
-    }
-    sf::RectangleShape shade({960.0F, 600.0F});
-    shade.setFillColor({19, 35, 20, 115});
-    window.draw(shade);
-    if (panelLoaded_) {
-        sf::Sprite panel(panelTexture_);
-        panel.setScale({1.75F, 1.75F});
-        panel.setPosition({60.0F, 20.0F});
-        window.draw(panel);
     }
 
     const AlmanacEntry& entry = selectedEntry();
@@ -138,29 +148,39 @@ void AlmanacScreen::draw(sf::RenderWindow& window) const {
     }
     if (portraitTexture) {
         sf::Sprite portrait(*portraitTexture);
-        fitCentered(portrait, {{330.0F, 112.0F}, {300.0F, 178.0F}});
+        fitCentered(portrait, {{520.0F, 174.0F}, {360.0F, 245.0F}});
         window.draw(portrait);
     }
 
-    drawText(window, entry.name.data(), 28, {333.0F, 338.0F}, {74, 38, 17});
-    drawText(window, entry.role.data(), 18, {335.0F, 377.0F}, {115, 59, 24});
-    drawText(window, entry.stats.data(), 17, {335.0F, 407.0F}, {58, 42, 25});
-    drawText(window, entry.ability.data(), 15, {335.0F, 437.0F}, {58, 42, 25});
-    drawText(window, entry.tip.data(), 14, {335.0F, 469.0F}, {95, 61, 30});
+    drawText(window, entry.name.data(), 30, {385.0F, 28.0F}, {52, 43, 37});
+    drawText(window, "类型", 14, {58.0F, 181.0F}, {244, 216, 157});
+    drawText(window, entry.role.data(), 20, {58.0F, 202.0F}, {255, 244, 196});
+    drawText(window, "基础数据", 14, {58.0F, 234.0F}, {244, 216, 157});
+    drawText(window, entry.stats.data(), 18, {58.0F, 255.0F}, {255, 244, 196});
+    drawText(window, "能力", 14, {58.0F, 289.0F}, {244, 216, 157});
+    drawText(window, entry.ability.data(), 15, {58.0F, 310.0F}, {255, 244, 196});
+    drawText(window, "提示", 14, {58.0F, 348.0F}, {244, 216, 157});
+    drawText(window, entry.tip.data(), 14, {58.0F, 370.0F}, {255, 244, 196});
 
-    drawPanel(window, plantTab, category_ == Category::Plants ? sf::Color(120, 73, 35) : sf::Color(77, 48, 27));
-    drawPanel(window, zombieTab, category_ == Category::Zombies ? sf::Color(120, 73, 35) : sf::Color(77, 48, 27));
-    drawPanel(window, backButton, {91, 51, 29});
-    drawText(window, "植物", 22, {138.0F, 524.0F});
-    drawText(window, "僵尸", 22, {298.0F, 524.0F});
-    drawText(window, "返回", 22, {773.0F, 524.0F});
-    drawText(window, "‹", 46, {197.0F, 38.0F}, {246, 231, 190});
-    drawText(window, "›", 46, {733.0F, 38.0F}, {246, 231, 190});
+    if (buttonLoaded_) {
+        drawStoneButton(window, buttonTexture_, plantTab, category_ == Category::Plants);
+        drawStoneButton(window, buttonTexture_, zombieTab, category_ == Category::Zombies);
+        drawStoneButton(window, buttonTexture_, backButton, false);
+    } else {
+        drawPanel(window, plantTab, {77, 48, 27});
+        drawPanel(window, zombieTab, {77, 48, 27});
+        drawPanel(window, backButton, {91, 51, 29});
+    }
+    drawText(window, "植物", 21, {111.0F, 533.0F});
+    drawText(window, "僵尸", 21, {266.0F, 533.0F});
+    drawText(window, "返回", 21, {801.0F, 533.0F});
+    drawText(window, "‹", 46, {168.0F, 24.0F}, {246, 231, 190});
+    drawText(window, "›", 46, {768.0F, 24.0F}, {246, 231, 190});
     drawText(
         window,
         std::to_string(selectedIndex_ + 1) + " / " + std::to_string(entryCount()),
         16,
-        {455.0F, 527.0F},
+        {455.0F, 538.0F},
         {92, 55, 27}
     );
 }

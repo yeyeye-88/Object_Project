@@ -9,6 +9,7 @@ enum class MainMenuAction {
     Play,
     Almanac,
     Settings,
+    Help,
     Exit,
 };
 

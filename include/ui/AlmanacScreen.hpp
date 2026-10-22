@@ -37,12 +37,10 @@ private:
     sf::Font font_;
     bool fontLoaded_{};
     sf::Texture backgroundTexture_;
-    sf::Texture panelTexture_;
     sf::Texture buttonTexture_;
     std::array<sf::Texture, plantTypeCount> plantTextures_;
     std::array<sf::Texture, zombieTypeCount> zombieTextures_;
     bool backgroundLoaded_{};
-    bool panelLoaded_{};
     bool buttonLoaded_{};
     std::array<bool, plantTypeCount> plantLoaded_{};
     std::array<bool, zombieTypeCount> zombieLoaded_{};

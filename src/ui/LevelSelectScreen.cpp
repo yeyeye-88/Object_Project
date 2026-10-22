@@ -10,10 +10,13 @@ namespace object_project {
 LevelSelectScreen::LevelSelectScreen()
     : fontLoaded_(ui::loadChineseFont(font_)),
       backgroundLoaded_(backgroundTexture_.loadFromFile(
-          "assets/pvz/ui/reference/main_menu.png"
+          "assets/pvz/ui/screens/challenge_background.jpg"
       )),
-      buttonLoaded_(buttonTexture_.loadFromFile(
-          "assets/pvz/ui/reference/wood_button.png"
+      levelButtonLoaded_(levelButtonTexture_.loadFromFile(
+          "assets/pvz/ui/screens/stone_button.png"
+      )),
+      backButtonLoaded_(backButtonTexture_.loadFromFile(
+          "assets/pvz/ui/screens/small_button.png"
       )) {}
 
 LevelSelectAction LevelSelectScreen::handleEvent(
@@ -51,58 +54,51 @@ void LevelSelectScreen::draw(sf::RenderWindow& window) const {
     window.draw(frame);
     if (backgroundLoaded_) {
         sf::Sprite background(backgroundTexture_);
-        background.setPosition({30.0F, 0.0F});
+        const sf::Vector2u source = backgroundTexture_.getSize();
+        background.setScale({960.0F / source.x, 600.0F / source.y});
         window.draw(background);
     }
-    sf::RectangleShape shade({960.0F, 600.0F});
-    shade.setFillColor({12, 26, 18, 145});
-    window.draw(shade);
-    sf::RectangleShape titlePlate({360.0F, 68.0F});
-    titlePlate.setPosition({300.0F, 48.0F});
-    titlePlate.setFillColor({104, 55, 26, 245});
-    titlePlate.setOutlineColor({230, 173, 73});
-    titlePlate.setOutlineThickness(4.0F);
-    window.draw(titlePlate);
-    drawText(window, "选择关卡", 38, {398.0F, 58.0F}, {255, 224, 111});
+    drawText(window, "选择关卡", 34, {405.0F, 27.0F}, {53, 49, 48});
 
     const sf::Vector2f mouse = window.mapPixelToCoords(sf::Mouse::getPosition(window));
     for (std::size_t index = 0; index < levelBounds.size(); ++index) {
         const LevelDefinition& level = levelDefinition(static_cast<LevelId>(index));
         const sf::FloatRect& bounds = levelBounds[index];
-        sf::RectangleShape panel(bounds.size);
-        panel.setPosition(bounds.position);
         const bool hovered = bounds.contains(mouse);
-        const std::array<sf::Color, levelCount> colors{{
-            {84, 110, 58, 245},
-            {74, 98, 52, 245},
-            {65, 61, 87, 245},
-            {84, 49, 80, 245},
-        }};
-        sf::Color panelColor = colors[index];
-        if (hovered) {
-            panelColor.r = static_cast<std::uint8_t>(std::min(255, panelColor.r + 24));
-            panelColor.g = static_cast<std::uint8_t>(std::min(255, panelColor.g + 24));
-            panelColor.b = static_cast<std::uint8_t>(std::min(255, panelColor.b + 18));
+        if (levelButtonLoaded_) {
+            const sf::Vector2u source = levelButtonTexture_.getSize();
+            const unsigned int frameHeight = source.y / 2U;
+            sf::Sprite panel(levelButtonTexture_);
+            panel.setTextureRect(sf::IntRect(
+                {0, hovered ? static_cast<int>(frameHeight) : 0},
+                {static_cast<int>(source.x), static_cast<int>(frameHeight)}
+            ));
+            panel.setScale({bounds.size.x / source.x, bounds.size.y / frameHeight});
+            panel.setPosition(bounds.position);
+            window.draw(panel);
+        } else {
+            sf::RectangleShape panel(bounds.size);
+            panel.setPosition(bounds.position);
+            panel.setFillColor(hovered ? sf::Color(147, 147, 164) : sf::Color(113, 114, 132));
+            window.draw(panel);
         }
-        panel.setFillColor(panelColor);
-        panel.setOutlineColor(hovered ? sf::Color(255, 225, 118) : sf::Color(192, 139, 65));
-        panel.setOutlineThickness(hovered ? 5.0F : 3.0F);
-        window.draw(panel);
 
-        drawText(window, level.name, 24, {bounds.position.x + 20.0F, bounds.position.y + 12.0F}, {255, 229, 132});
+        const sf::Color primary{45, 42, 48};
+        const sf::Color secondary{72, 66, 70};
+        drawText(window, level.name, 23, {bounds.position.x + 22.0F, bounds.position.y + 14.0F}, primary);
         drawText(
             window,
             level.description,
             14,
-            {bounds.position.x + 18.0F, bounds.position.y + 48.0F},
-            {231, 229, 198}
+            {bounds.position.x + 22.0F, bounds.position.y + 47.0F},
+            secondary
         );
         drawText(
             window,
             "初始阳光  " + std::to_string(level.initialSun),
             18,
-            {bounds.position.x + 18.0F, bounds.position.y + 80.0F},
-            {250, 218, 91}
+            {bounds.position.x + 22.0F, bounds.position.y + 78.0F},
+            primary
         );
         drawText(
             window,
@@ -110,19 +106,26 @@ void LevelSelectScreen::draw(sf::RenderWindow& window) const {
                 ? std::string{"波次  无尽"}
                 : "波次  " + std::to_string(level.waveCount),
             18,
-            {bounds.position.x + 190.0F, bounds.position.y + 80.0F}
+            {bounds.position.x + 205.0F, bounds.position.y + 78.0F},
+            primary
         );
-        drawText(window, "点击开始", 16, {bounds.position.x + 151.0F, bounds.position.y + 116.0F});
+        drawText(
+            window,
+            hovered ? "点击进入" : "开始关卡",
+            15,
+            {bounds.position.x + 151.0F, bounds.position.y + 116.0F},
+            primary
+        );
     }
 
-    if (buttonLoaded_) {
-        sf::Sprite back(buttonTexture_);
-        const sf::Vector2u source = buttonTexture_.getSize();
+    if (backButtonLoaded_) {
+        sf::Sprite back(backButtonTexture_);
+        const sf::Vector2u source = backButtonTexture_.getSize();
         back.setScale({backBounds.size.x / source.x, backBounds.size.y / source.y});
         back.setPosition(backBounds.position);
         window.draw(back);
     }
-    drawText(window, "返回", 22, {119.0F, 532.0F}, {255, 220, 96});
+    drawText(window, "返回", 20, {121.0F, 531.0F}, {238, 234, 206});
 }
 
 void LevelSelectScreen::drawText(

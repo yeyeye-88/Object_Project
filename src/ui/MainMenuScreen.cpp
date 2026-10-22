@@ -62,6 +62,9 @@ MainMenuAction MainMenuScreen::handleEvent(
         if (contains(settingsBounds, point)) {
             return MainMenuAction::Settings;
         }
+        if (contains(helpBounds, point)) {
+            return MainMenuAction::Help;
+        }
         if (contains(exitBounds, point)) {
             return MainMenuAction::Exit;
         }
@@ -128,7 +131,13 @@ void MainMenuScreen::draw(sf::RenderWindow& window) const {
         {700.0F, 507.0F},
         contains(settingsBounds, mouse) ? sf::Color(255, 245, 155) : sf::Color(64, 55, 43)
     );
-    drawText(window, "帮助", 20, {784.0F, 520.0F}, {64, 55, 43});
+    drawText(
+        window,
+        "帮助",
+        contains(helpBounds, mouse) ? 22U : 20U,
+        {784.0F, 520.0F},
+        contains(helpBounds, mouse) ? sf::Color(255, 245, 155) : sf::Color(64, 55, 43)
+    );
     drawText(
         window,
         "退出",

@@ -42,8 +42,10 @@ private:
     sf::Font font_;
     bool fontLoaded_{};
     sf::Texture backgroundTexture_;
+    sf::Texture panelTexture_;
     sf::Texture buttonTexture_;
     bool backgroundLoaded_{};
+    bool panelLoaded_{};
     bool buttonLoaded_{};
 };
 
