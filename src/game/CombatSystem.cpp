@@ -63,12 +63,19 @@ void CombatSystem::reset() {
     zombies_.clear();
     projectiles_.clear();
     delayedAreaDamages_.clear();
+    events_.clear();
     nextProjectileId_ = 1;
     nextAreaDamageId_ = 1;
     breached_ = false;
     for (int row = 0; row < BoardGeometry::rows; ++row) {
         mowers_[static_cast<std::size_t>(row)] = {row, mowerStartX, LawnMowerState::Ready};
     }
+}
+
+std::vector<CombatEvent> CombatSystem::takeEvents() {
+    std::vector<CombatEvent> events;
+    events.swap(events_);
+    return events;
 }
 
 void CombatSystem::launchProjectile(
@@ -180,24 +187,35 @@ void CombatSystem::updatePlants(
                     (row + 1 < BoardGeometry::rows && hasZombieAhead(row + 1, originX));
             }
             const GridPosition plantPosition = plant->position();
+            plant->updateActionAnimation(deltaSeconds);
             const auto action = plant->update(deltaSeconds, context);
             if (action == PlantAction::ProduceSun) {
+                plant->beginActionAnimation();
                 suns.spawnFromPlant(plant->position());
             } else if (action == PlantAction::FirePea) {
+                plant->beginActionAnimation();
                 launchProjectile(Projectile::Type::Pea, row, originX);
+                events_.push_back(CombatEvent::ProjectileFired);
             } else if (action == PlantAction::FireDoublePea) {
+                plant->beginActionAnimation();
                 launchProjectile(Projectile::Type::Pea, row, originX);
                 launchProjectile(Projectile::Type::Pea, row, originX - 14.0F);
+                events_.push_back(CombatEvent::ProjectileFired);
             } else if (action == PlantAction::FireThreeRows) {
+                plant->beginActionAnimation();
                 for (int targetRow = row - 1; targetRow <= row + 1; ++targetRow) {
                     if (targetRow >= 0 && targetRow < BoardGeometry::rows) {
                         launchProjectile(Projectile::Type::Pea, targetRow, originX);
                     }
                 }
+                events_.push_back(CombatEvent::ProjectileFired);
             } else if (action == PlantAction::FireFrozenPea) {
+                plant->beginActionAnimation();
                 launchProjectile(Projectile::Type::FrozenPea, row, originX);
+                events_.push_back(CombatEvent::ProjectileFired);
             } else if (action == PlantAction::ExplodePotatoMine) {
                 damageNearestZombie(row, plantCenterX, potatoMineTriggerRadius, potatoMineDamage);
+                events_.push_back(CombatEvent::Explosion);
                 board.remove(plantPosition);
             } else if (action == PlantAction::ExplodeCherryBomb) {
                 applyAreaDamage({
@@ -207,6 +225,7 @@ void CombatSystem::updatePlants(
                     cherryBombHorizontalRadius,
                     cherryBombDamage,
                 });
+                events_.push_back(CombatEvent::Explosion);
                 board.remove(plantPosition);
             }
         }
@@ -229,6 +248,7 @@ void CombatSystem::updateProjectiles(const float deltaSeconds, const Board& boar
                 if (previousX <= torchwoodX && projectile.x >= torchwoodX) {
                     projectile.type = Projectile::Type::FirePea;
                     projectile.damage *= firePeaDamageMultiplier;
+                    events_.push_back(CombatEvent::FirePeaIgnited);
                     break;
                 }
             }
@@ -246,7 +266,13 @@ void CombatSystem::updateProjectiles(const float deltaSeconds, const Board& boar
             }
         }
         if (target != nullptr) {
+            const int armorBeforeHit = target->armor();
             target->receiveDamage(projectile.damage);
+            events_.push_back(CombatEvent::ProjectileHit);
+            if (target->type() == ZombieType::Newspaper && armorBeforeHit > 0 &&
+                target->armor() == 0) {
+                events_.push_back(CombatEvent::NewspaperBroken);
+            }
             if (projectile.type == Projectile::Type::FrozenPea) {
                 target->applySlow(frozenPeaSpeedMultiplier, frozenPeaDurationSeconds);
             }
@@ -308,17 +334,23 @@ void CombatSystem::updateZombies(const float deltaSeconds, Board& board) {
 
         if (blockingPlant == nullptr) {
             zombie->updateAttack(deltaSeconds, false);
-            zombie->move(deltaSeconds);
+            if (!zombie->isVaulting()) {
+                zombie->move(deltaSeconds);
+            }
         } else if (zombie->canVault() && !blockingPlant->blocksVaulting()) {
+            const float vaultStartX = zombie->x();
             zombie->setX(
                 plantLeft(blockingPlant->position()) - zombieWidth - 2.0F
             );
-            zombie->useVault();
+            zombie->useVault(vaultStartX);
+            events_.push_back(CombatEvent::PoleVaulted);
             zombie->updateAttack(deltaSeconds, false);
         } else if (zombie->updateAttack(deltaSeconds, true)) {
             blockingPlant->takeDamage(zombie->attackDamage());
+            events_.push_back(CombatEvent::ZombieBite);
         }
         zombie->updateStatusEffects(deltaSeconds);
+        zombie->updateSpecialState(deltaSeconds);
     }
 }
 
@@ -337,6 +369,7 @@ void CombatSystem::updateMowers(const float deltaSeconds) {
             );
             if (shouldTrigger) {
                 mower.state = LawnMowerState::Active;
+                events_.push_back(CombatEvent::MowerStarted);
             }
         }
 

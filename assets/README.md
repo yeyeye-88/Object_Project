@@ -12,6 +12,14 @@
 `D:\Object\Plants-vs-zombies\663\images` 中的原版 GIF，没有使用生成式图片。
 其中植物动画覆盖当前 10 种植物；僵尸动画覆盖普通、路障、铁桶、旗帜、
 撑杆和报纸僵尸，并为撑杆落地与报纸破损后的状态保留独立动作。
+`pvz/animations/zombies/attack/`、`death/`、`pole_jump/` 和
+`newspaper_transition/` 同样从该素材库的原版 GIF 逐帧提取，分别用于啃食、
+死亡、撑杆跳跃和报纸破损过渡，没有补画或生成中间帧。
+
+`pvz/audio/` 中的背景音乐、界面提示音和战斗音效直接复制自
+`D:\Object\Plants-vs-zombies\663\audio` 的 OGG 文件。程序不再实时合成音乐或
+提示音；开战、按钮、阳光、种植、发射、命中、爆炸、割草机、撑杆、报纸破损、啃食、
+火豌豆、胜利和失败均使用素材库中的对应音频。
 
 `pvz/ui/reference/` 直接复制自
 `D:\Object\ObjectOriented_Lab\PvZ (2.1)\PvZ_Final\PvZ\assets\Screen`，

@@ -1,3 +1,4 @@
+#include <SFML/Audio/SoundBuffer.hpp>
 #include <SFML/Graphics/Image.hpp>
 
 #include <filesystem>
@@ -86,6 +87,37 @@ int main() {
         "assets/pvz/animations/zombies/pole_walking/24.png",
         "assets/pvz/animations/zombies/newspaper/18.png",
         "assets/pvz/animations/zombies/newspaper_enraged/13.png",
+        "assets/pvz/animations/zombies/attack/normal/0.png",
+        "assets/pvz/animations/zombies/attack/normal/20.png",
+        "assets/pvz/animations/zombies/attack/conehead/10.png",
+        "assets/pvz/animations/zombies/attack/buckethead/10.png",
+        "assets/pvz/animations/zombies/attack/flag/10.png",
+        "assets/pvz/animations/zombies/attack/pole_vaulting/13.png",
+        "assets/pvz/animations/zombies/attack/newspaper/7.png",
+        "assets/pvz/animations/zombies/attack/newspaper_enraged/6.png",
+        "assets/pvz/animations/zombies/pole_jump/16.png",
+        "assets/pvz/animations/zombies/newspaper_transition/10.png",
+        "assets/pvz/animations/zombies/death/normal/9.png",
+        "assets/pvz/animations/zombies/death/pole_vaulting/8.png",
+        "assets/pvz/animations/zombies/death/newspaper/10.png",
+    };
+    const std::vector<std::string_view> audioPaths{
+        "assets/pvz/audio/UraniwaNi.ogg",
+        "assets/pvz/audio/buttonclick.ogg",
+        "assets/pvz/audio/points.ogg",
+        "assets/pvz/audio/plant1.ogg",
+        "assets/pvz/audio/shoop.ogg",
+        "assets/pvz/audio/splat1.ogg",
+        "assets/pvz/audio/hugewave.ogg",
+        "assets/pvz/audio/readysetplant.ogg",
+        "assets/pvz/audio/cherrybomb.ogg",
+        "assets/pvz/audio/lawnmower.ogg",
+        "assets/pvz/audio/polevault.ogg",
+        "assets/pvz/audio/newspaper_rarrgh2.ogg",
+        "assets/pvz/audio/chomp.ogg",
+        "assets/pvz/audio/firepea.ogg",
+        "assets/pvz/audio/winmusic.ogg",
+        "assets/pvz/audio/losemusic.ogg",
     };
 
     bool passed = true;
@@ -96,9 +128,17 @@ int main() {
             passed = false;
         }
     }
+    for (const std::string_view relativePath : audioPaths) {
+        sf::SoundBuffer audio;
+        if (!audio.loadFromFile(root / relativePath)) {
+            std::cerr << "[FAIL] could not load " << relativePath << '\n';
+            passed = false;
+        }
+    }
 
     if (passed) {
-        std::cout << "[PASS] loaded " << paths.size() << " visual assets\n";
+        std::cout << "[PASS] loaded " << paths.size() << " visual assets and "
+                  << audioPaths.size() << " audio assets\n";
     }
     return passed ? 0 : 1;
 }

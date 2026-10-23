@@ -1,9 +1,23 @@
 #include "game/Plant.hpp"
 
+#include <algorithm>
+
 namespace object_project {
 
 Plant::Plant(const PlantType type, const GridPosition position, const int maxHealth)
     : Entity(maxHealth), type_(type), position_(position) {}
+
+float Plant::actionAnimationProgress() const {
+    return 1.0F - actionAnimationRemaining_ / actionAnimationSeconds;
+}
+
+void Plant::beginActionAnimation() {
+    actionAnimationRemaining_ = actionAnimationSeconds;
+}
+
+void Plant::updateActionAnimation(const float deltaSeconds) {
+    actionAnimationRemaining_ = std::max(0.0F, actionAnimationRemaining_ - deltaSeconds);
+}
 
 Sunflower::Sunflower(const GridPosition position)
     : Plant(PlantType::Sunflower, position, maximumHealth) {}

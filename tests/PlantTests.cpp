@@ -34,6 +34,16 @@ int main() {
         peashooter.update(Peashooter::attackIntervalSeconds, {true, false}) == PlantAction::FirePea,
         "peashooter fires when an enemy is ahead"
     );
+    peashooter.beginActionAnimation();
+    passed &= check(
+        peashooter.isPerformingAction() && peashooter.actionAnimationProgress() == 0.0F,
+        "plant action animation starts with its gameplay action"
+    );
+    peashooter.updateActionAnimation(1.0F);
+    passed &= check(
+        !peashooter.isPerformingAction(),
+        "plant action animation finishes independently of its attack timer"
+    );
 
     WallNut wallNut({3, 4});
     passed &= check(

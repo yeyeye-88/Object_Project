@@ -29,14 +29,22 @@ public:
     virtual int attackDamage() const = 0;
     virtual float attackIntervalSeconds() const = 0;
     virtual bool canVault() const { return false; }
-    virtual void useVault() {}
+    virtual void useVault(float) {}
+    virtual bool isVaulting() const { return false; }
+    virtual float vaultProgress() const { return 0.0F; }
+    virtual float visualX() const { return x(); }
+    virtual float visualYOffset() const { return 0.0F; }
     virtual bool isEnraged() const { return false; }
+    virtual bool isTransforming() const { return false; }
+    virtual float transformationProgress() const { return 0.0F; }
+    virtual void updateSpecialState(float) {}
 
     int row() const { return row_; }
     float x() const { return x_; }
     int armor() const { return armor_; }
     int maxArmor() const { return maxArmor_; }
     bool isSlowed() const { return slowRemainingSeconds_ > 0.0F; }
+    bool isAttacking() const { return attacking_; }
     float speedMultiplier() const { return slowMultiplier_; }
     float slowRemainingSeconds() const { return slowRemainingSeconds_; }
     void receiveDamage(int amount);
@@ -47,6 +55,8 @@ public:
     bool updateAttack(float deltaSeconds, bool blocked);
 
 private:
+    virtual void onArmorBroken() {}
+
     int row_{};
     float x_{};
     float attackTimer_{};
@@ -54,6 +64,7 @@ private:
     int maxArmor_{};
     float slowMultiplier_{1.0F};
     float slowRemainingSeconds_{};
+    bool attacking_{};
 };
 
 class NormalZombie final : public Zombie {
@@ -135,10 +146,18 @@ public:
     int attackDamage() const override { return damage; }
     float attackIntervalSeconds() const override { return attackInterval; }
     bool canVault() const override { return vaultAvailable_; }
-    void useVault() override { vaultAvailable_ = false; }
+    void useVault(float visualStartX) override;
+    bool isVaulting() const override { return vaultRemainingSeconds_ > 0.0F; }
+    float vaultProgress() const override;
+    float visualX() const override;
+    float visualYOffset() const override;
+    void updateSpecialState(float deltaSeconds) override;
 
 private:
+    static constexpr float vaultAnimationSeconds = 0.9F;
     bool vaultAvailable_{true};
+    float vaultRemainingSeconds_{};
+    float vaultVisualStartX_{};
 };
 
 class NewspaperZombie final : public Zombie {
@@ -160,6 +179,15 @@ public:
         return isEnraged() ? enragedAttackInterval : calmAttackInterval;
     }
     bool isEnraged() const override { return armor() == 0; }
+    bool isTransforming() const override { return transitionRemainingSeconds_ > 0.0F; }
+    float transformationProgress() const override;
+    void updateSpecialState(float deltaSeconds) override;
+
+private:
+    void onArmorBroken() override;
+
+    static constexpr float transitionAnimationSeconds = 1.1F;
+    float transitionRemainingSeconds_{};
 };
 
 std::unique_ptr<Zombie> createZombie(ZombieType type, int row, float x);

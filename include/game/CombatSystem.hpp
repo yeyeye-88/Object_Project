@@ -51,6 +51,17 @@ struct LawnMower {
     LawnMowerState state{LawnMowerState::Ready};
 };
 
+enum class CombatEvent {
+    ProjectileFired,
+    ProjectileHit,
+    Explosion,
+    MowerStarted,
+    PoleVaulted,
+    NewspaperBroken,
+    ZombieBite,
+    FirePeaIgnited,
+};
+
 class CombatSystem {
 public:
     static constexpr float zombieWidth = 46.0F;
@@ -88,6 +99,7 @@ public:
     );
     void applyAreaDamage(const AreaDamage& area);
     void scheduleAreaDamage(const AreaDamage& area, float delaySeconds);
+    std::vector<CombatEvent> takeEvents();
 
     bool breached() const { return breached_; }
     bool hasLivingZombies() const { return !zombies_.empty(); }
@@ -112,6 +124,7 @@ private:
     std::vector<std::unique_ptr<Zombie>> zombies_;
     std::vector<Projectile> projectiles_;
     std::vector<DelayedAreaDamage> delayedAreaDamages_;
+    std::vector<CombatEvent> events_;
     std::array<LawnMower, BoardGeometry::rows> mowers_{};
     std::uint64_t nextProjectileId_{1};
     std::uint64_t nextAreaDamageId_{1};

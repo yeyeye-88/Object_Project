@@ -242,6 +242,36 @@ GameScreen::GameScreen(GameSession& session) : session_(session) {
     newspaperEnragedAnimationFrames_ = loadNumberedFrames(
         "assets/pvz/animations/zombies/newspaper_enraged", 0, 13
     );
+    zombieAttackAnimationFrames_[static_cast<std::size_t>(ZombieType::Normal)] =
+        loadNumberedFrames("assets/pvz/animations/zombies/attack/normal", 0, 20);
+    zombieAttackAnimationFrames_[static_cast<std::size_t>(ZombieType::Conehead)] =
+        loadNumberedFrames("assets/pvz/animations/zombies/attack/conehead", 0, 10);
+    zombieAttackAnimationFrames_[static_cast<std::size_t>(ZombieType::Buckethead)] =
+        loadNumberedFrames("assets/pvz/animations/zombies/attack/buckethead", 0, 10);
+    zombieAttackAnimationFrames_[static_cast<std::size_t>(ZombieType::Flag)] =
+        loadNumberedFrames("assets/pvz/animations/zombies/attack/flag", 0, 10);
+    zombieAttackAnimationFrames_[static_cast<std::size_t>(ZombieType::PoleVaulting)] =
+        loadNumberedFrames("assets/pvz/animations/zombies/attack/pole_vaulting", 0, 13);
+    zombieAttackAnimationFrames_[static_cast<std::size_t>(ZombieType::Newspaper)] =
+        loadNumberedFrames("assets/pvz/animations/zombies/attack/newspaper", 0, 7);
+    newspaperEnragedAttackAnimationFrames_ = loadNumberedFrames(
+        "assets/pvz/animations/zombies/attack/newspaper_enraged", 0, 6
+    );
+    poleJumpAnimationFrames_ = loadNumberedFrames(
+        "assets/pvz/animations/zombies/pole_jump", 0, 16
+    );
+    newspaperTransitionAnimationFrames_ = loadNumberedFrames(
+        "assets/pvz/animations/zombies/newspaper_transition", 0, 10
+    );
+    normalDeathAnimationFrames_ = loadNumberedFrames(
+        "assets/pvz/animations/zombies/death/normal", 0, 9
+    );
+    poleDeathAnimationFrames_ = loadNumberedFrames(
+        "assets/pvz/animations/zombies/death/pole_vaulting", 0, 8
+    );
+    newspaperDeathAnimationFrames_ = loadNumberedFrames(
+        "assets/pvz/animations/zombies/death/newspaper", 0, 10
+    );
 
     const std::array<std::string, 3> threepeaterStemPaths{
         "assets/pvz/plants/threepeater_stem1.png",
@@ -358,6 +388,47 @@ std::vector<SoundCue> GameScreen::takeSoundCues() {
 void GameScreen::update(const float deltaSeconds) {
     animationTime_ += deltaSeconds;
     waveBannerSeconds_ = std::max(0.0F, waveBannerSeconds_ - deltaSeconds);
+    for (ZombieDeathEffect& effect : zombieDeathEffects_) {
+        effect.age += deltaSeconds;
+    }
+    zombieDeathEffects_.erase(
+        std::remove_if(
+            zombieDeathEffects_.begin(),
+            zombieDeathEffects_.end(),
+            [](const ZombieDeathEffect& effect) { return effect.age >= effect.duration; }
+        ),
+        zombieDeathEffects_.end()
+    );
+
+    const auto& currentZombies = session_.combat().zombies();
+    for (const ZombieSnapshot& snapshot : zombieSnapshots_) {
+        const bool stillPresent = std::any_of(
+            currentZombies.begin(),
+            currentZombies.end(),
+            [&snapshot](const std::unique_ptr<Zombie>& zombie) {
+                return zombie.get() == snapshot.identity;
+            }
+        );
+        if (!stillPresent) {
+            zombieDeathEffects_.push_back({
+                snapshot.type,
+                snapshot.row,
+                snapshot.x,
+                snapshot.slowed,
+            });
+        }
+    }
+    zombieSnapshots_.clear();
+    zombieSnapshots_.reserve(currentZombies.size());
+    for (const auto& zombie : currentZombies) {
+        zombieSnapshots_.push_back({
+            zombie.get(),
+            zombie->type(),
+            zombie->row(),
+            zombie->visualX(),
+            zombie->isSlowed(),
+        });
+    }
     for (PulseEffect& effect : pulseEffects_) {
         effect.age += deltaSeconds;
     }
@@ -374,30 +445,52 @@ void GameScreen::update(const float deltaSeconds) {
     if (currentWave > observedWave_) {
         observedWave_ = currentWave;
         waveBannerSeconds_ = 1.8F;
-        soundCues_.push_back(SoundCue::Wave);
+        soundCues_.push_back(currentWave == 1 ? SoundCue::Ready : SoundCue::Wave);
     }
 
-    const std::size_t projectileCount = session_.combat().projectiles().size();
-    if (projectileCount > observedProjectileCount_) {
-        soundCues_.push_back(SoundCue::Attack);
-    }
-    observedProjectileCount_ = projectileCount;
-
-    int totalHealth = 0;
-    for (int row = 0; row < BoardGeometry::rows; ++row) {
-        for (int column = 0; column < BoardGeometry::columns; ++column) {
-            if (const Plant* plant = session_.board().plantAt({row, column})) {
-                totalHealth += plant->health();
-            }
+    const auto queueOnce = [this](const SoundCue cue) {
+        if (std::find(soundCues_.begin(), soundCues_.end(), cue) == soundCues_.end()) {
+            soundCues_.push_back(cue);
+        }
+    };
+    for (const CombatEvent event : session_.combat().takeEvents()) {
+        switch (event) {
+            case CombatEvent::ProjectileFired:
+                queueOnce(SoundCue::Attack);
+                break;
+            case CombatEvent::ProjectileHit:
+                queueOnce(SoundCue::Hit);
+                break;
+            case CombatEvent::Explosion:
+                queueOnce(SoundCue::Explosion);
+                break;
+            case CombatEvent::MowerStarted:
+                queueOnce(SoundCue::Mower);
+                break;
+            case CombatEvent::PoleVaulted:
+                queueOnce(SoundCue::PoleVault);
+                break;
+            case CombatEvent::NewspaperBroken:
+                queueOnce(SoundCue::Newspaper);
+                break;
+            case CombatEvent::ZombieBite:
+                queueOnce(SoundCue::Chomp);
+                break;
+            case CombatEvent::FirePeaIgnited:
+                queueOnce(SoundCue::FirePea);
+                break;
         }
     }
-    for (const auto& zombie : session_.combat().zombies()) {
-        totalHealth += zombie->health() + zombie->armor();
+
+    const GameState currentState = session_.state();
+    if (currentState != observedGameState_) {
+        if (currentState == GameState::Won) {
+            queueOnce(SoundCue::Win);
+        } else if (currentState == GameState::Lost) {
+            queueOnce(SoundCue::Lose);
+        }
+        observedGameState_ = currentState;
     }
-    if (observedTotalHealth_ > 0 && totalHealth < observedTotalHealth_) {
-        soundCues_.push_back(SoundCue::Hit);
-    }
-    observedTotalHealth_ = totalHealth;
 }
 
 void GameScreen::resetInteraction() {
@@ -408,10 +501,11 @@ void GameScreen::resetInteraction() {
     menuRequested_ = false;
     soundCues_.clear();
     pulseEffects_.clear();
+    zombieSnapshots_.clear();
+    zombieDeathEffects_.clear();
     waveBannerSeconds_ = 1.2F;
     observedWave_ = 0;
-    observedTotalHealth_ = 0;
-    observedProjectileCount_ = 0;
+    observedGameState_ = session_.state();
 }
 
 void GameScreen::handleEvent(
@@ -423,8 +517,7 @@ void GameScreen::handleEvent(
             session_.togglePause();
         } else if (key->scancode == sf::Keyboard::Scancode::R) {
             session_.restart();
-            selectedPlant_.reset();
-            shovelSelected_ = false;
+            resetInteraction();
         }
         return;
     }
@@ -466,8 +559,7 @@ void GameScreen::handleLeftClick(const sf::Vector2f position) {
             session_.togglePause();
         } else if (contains(restartBounds, position)) {
             session_.restart();
-            selectedPlant_.reset();
-            shovelSelected_ = false;
+            resetInteraction();
         } else if (contains(menuBounds, position)) {
             menuRequested_ = true;
         }
@@ -477,8 +569,7 @@ void GameScreen::handleLeftClick(const sf::Vector2f position) {
     if (session_.state() == GameState::Won || session_.state() == GameState::Lost) {
         if (contains(resultRestartBounds, position)) {
             session_.restart();
-            selectedPlant_.reset();
-            shovelSelected_ = false;
+            resetInteraction();
         } else if (contains(resultMenuBounds, position)) {
             menuRequested_ = true;
         }
@@ -587,7 +678,13 @@ void GameScreen::drawBoard(sf::RenderWindow& window) const {
         for (int column = 0; column < BoardGeometry::columns; ++column) {
             const GridPosition position{row, column};
             if (const Plant* plant = session_.board().plantAt(position)) {
-                drawPlant(window, plant->type(), position, false);
+                drawPlant(
+                    window,
+                    plant->type(),
+                    position,
+                    false,
+                    plant->isPerformingAction() ? plant->actionAnimationProgress() : -1.0F
+                );
                 drawHealthBar(
                     window,
                     static_cast<float>(plant->health()) /
@@ -672,8 +769,9 @@ void GameScreen::drawCombat(sf::RenderWindow& window) const {
     }
 
     for (const auto& zombie : session_.combat().zombies()) {
-        const float top = BoardGeometry::cellTop(zombie->row()) + 6.0F;
-        const float zombieX = boardToScreenX(zombie->x());
+        const float visualYOffset = zombie->visualYOffset();
+        const float top = BoardGeometry::cellTop(zombie->row()) + 6.0F + visualYOffset;
+        const float zombieX = boardToScreenX(zombie->visualX());
         sf::RectangleShape body({CombatSystem::zombieWidth, 80.0F});
         body.setPosition({zombieX, top});
         sf::Color bodyColor{105, 125, 91};
@@ -699,8 +797,23 @@ void GameScreen::drawCombat(sf::RenderWindow& window) const {
         }
         const std::size_t zombieIndex = static_cast<std::size_t>(zombie->type());
         const std::vector<sf::Texture>* animation = &zombieAnimationFrames_[zombieIndex];
-        if (zombie->type() == ZombieType::PoleVaulting && !zombie->canVault() &&
-            !poleWalkingAnimationFrames_.empty()) {
+        float oneShotProgress = -1.0F;
+        if (zombie->type() == ZombieType::PoleVaulting && zombie->isVaulting() &&
+            !poleJumpAnimationFrames_.empty()) {
+            animation = &poleJumpAnimationFrames_;
+            oneShotProgress = zombie->vaultProgress();
+        } else if (zombie->type() == ZombieType::Newspaper && zombie->isTransforming() &&
+                   !newspaperTransitionAnimationFrames_.empty()) {
+            animation = &newspaperTransitionAnimationFrames_;
+            oneShotProgress = zombie->transformationProgress();
+        } else if (zombie->isAttacking() && zombie->type() == ZombieType::Newspaper &&
+                   zombie->isEnraged() && !newspaperEnragedAttackAnimationFrames_.empty()) {
+            animation = &newspaperEnragedAttackAnimationFrames_;
+        } else if (zombie->isAttacking() &&
+                   !zombieAttackAnimationFrames_[zombieIndex].empty()) {
+            animation = &zombieAttackAnimationFrames_[zombieIndex];
+        } else if (zombie->type() == ZombieType::PoleVaulting && !zombie->canVault() &&
+                   !poleWalkingAnimationFrames_.empty()) {
             animation = &poleWalkingAnimationFrames_;
         } else if (zombie->type() == ZombieType::Newspaper && zombie->isEnraged() &&
                    !newspaperEnragedAnimationFrames_.empty()) {
@@ -708,9 +821,14 @@ void GameScreen::drawCombat(sf::RenderWindow& window) const {
         }
         const sf::Texture* zombieTexture = nullptr;
         if (!animation->empty()) {
-            const std::size_t frame = static_cast<std::size_t>(
-                animationTime_ * 11.0F + zombie->x() * 0.015F
-            ) % animation->size();
+            const std::size_t frame = oneShotProgress >= 0.0F
+                ? std::min(
+                      static_cast<std::size_t>(oneShotProgress * animation->size()),
+                      animation->size() - 1
+                  )
+                : static_cast<std::size_t>(
+                      animationTime_ * 11.0F + zombie->x() * 0.015F
+                  ) % animation->size();
             zombieTexture = &(*animation)[frame];
         } else if (zombieLoaded_[zombieIndex]) {
             zombieTexture = &zombieTextures_[zombieIndex];
@@ -722,7 +840,7 @@ void GameScreen::drawCombat(sf::RenderWindow& window) const {
             placeBottomCenteredAtHeight(
                 sprite,
                 zombieX + collisionWidth * 0.5F - (poleVaulting ? 52.0F : 0.0F),
-                BoardGeometry::cellTop(zombie->row()) + 104.0F,
+                BoardGeometry::cellTop(zombie->row()) + 104.0F + visualYOffset,
                 poleVaulting ? 182.0F : 132.0F
             );
             if (zombie->isSlowed()) {
@@ -782,13 +900,45 @@ void GameScreen::drawCombat(sf::RenderWindow& window) const {
             );
         }
     }
+
+    for (const ZombieDeathEffect& effect : zombieDeathEffects_) {
+        const std::vector<sf::Texture>* animation = &normalDeathAnimationFrames_;
+        if (effect.type == ZombieType::PoleVaulting) {
+            animation = &poleDeathAnimationFrames_;
+        } else if (effect.type == ZombieType::Newspaper) {
+            animation = &newspaperDeathAnimationFrames_;
+        }
+        if (animation->empty()) {
+            continue;
+        }
+        const float progress = std::clamp(effect.age / effect.duration, 0.0F, 1.0F);
+        const std::size_t frame = std::min(
+            static_cast<std::size_t>(progress * animation->size()),
+            animation->size() - 1
+        );
+        sf::Sprite sprite((*animation)[frame]);
+        const float zombieX = boardToScreenX(effect.x);
+        const float collisionWidth = CombatSystem::zombieWidth * visualScaleX;
+        const bool poleVaulting = effect.type == ZombieType::PoleVaulting;
+        placeBottomCenteredAtHeight(
+            sprite,
+            zombieX + collisionWidth * 0.5F - (poleVaulting ? 52.0F : 0.0F),
+            BoardGeometry::cellTop(effect.row) + 104.0F,
+            poleVaulting ? 182.0F : 132.0F
+        );
+        if (effect.slowed) {
+            sprite.setColor({180, 225, 255});
+        }
+        window.draw(sprite);
+    }
 }
 
 void GameScreen::drawPlant(
     sf::RenderWindow& window,
     const PlantType type,
     const GridPosition position,
-    const bool preview
+    const bool preview,
+    const float actionProgress
 ) const {
     const std::size_t index = toIndex(type);
     const sf::Vector2f targetPosition{
@@ -850,9 +1000,17 @@ void GameScreen::drawPlant(
     const std::vector<sf::Texture>& animation = plantAnimationFrames_[index];
     const sf::Texture* plantTexture = nullptr;
     if (!animation.empty()) {
-        const std::size_t frame = preview ? 0 : static_cast<std::size_t>(
-            animationTime_ * 10.0F + static_cast<float>(position.row * 2 + position.column)
-        ) % animation.size();
+        const std::size_t frame = preview
+            ? 0
+            : actionProgress >= 0.0F
+                ? std::min(
+                      static_cast<std::size_t>(actionProgress * animation.size()),
+                      animation.size() - 1
+                  )
+                : static_cast<std::size_t>(
+                      animationTime_ * 10.0F +
+                      static_cast<float>(position.row * 2 + position.column)
+                  ) % animation.size();
         plantTexture = &animation[frame];
     } else if (plantLoaded_[index]) {
         plantTexture = &plantTextures_[index];

@@ -1,5 +1,6 @@
 #include "game/Zombie.hpp"
 
+#include <cmath>
 #include <iostream>
 
 namespace {
@@ -46,6 +47,9 @@ int main() {
             slowed.updateAttack(NormalZombie::attackInterval, true),
         "slow increases zombie attack interval"
     );
+    passed &= check(slowed.isAttacking(), "blocked zombie exposes its attack animation state");
+    slowed.updateAttack(0.1F, false);
+    passed &= check(!slowed.isAttacking(), "moving zombie leaves its attack animation state");
     slowed.applySlow(0.75F, 3.0F);
     passed &= check(
         slowed.speedMultiplier() == 0.5F && slowed.slowRemainingSeconds() == 3.0F,
@@ -65,21 +69,34 @@ int main() {
         poleVaulting.canVault() && poleVaulting.movementSpeed() == PoleVaultingZombie::vaultSpeed,
         "pole-vaulting zombie starts with its vault"
     );
-    poleVaulting.useVault();
+    poleVaulting.setX(320.0F);
+    poleVaulting.useVault(400.0F);
     passed &= check(
-        !poleVaulting.canVault() &&
-            poleVaulting.movementSpeed() == PoleVaultingZombie::walkingSpeed,
+        !poleVaulting.canVault() && poleVaulting.isVaulting() &&
+            poleVaulting.movementSpeed() == PoleVaultingZombie::walkingSpeed &&
+            poleVaulting.visualX() == 400.0F,
         "pole-vaulting zombie slows after using its vault"
     );
+    poleVaulting.updateSpecialState(0.45F);
+    passed &= check(
+        std::abs(poleVaulting.visualX() - 360.0F) < 0.01F &&
+            poleVaulting.visualYOffset() < -50.0F,
+        "pole-vaulting visual follows a smooth jump arc"
+    );
+    poleVaulting.updateSpecialState(0.55F);
+    passed &= check(!poleVaulting.isVaulting(), "pole-vaulting animation state expires");
 
     NewspaperZombie newspaper(3, 600.0F);
     const float calmSpeed = newspaper.movementSpeed();
     const float calmAttackInterval = newspaper.attackIntervalSeconds();
     newspaper.receiveDamage(NewspaperZombie::newspaperArmor);
     passed &= check(
-        newspaper.isEnraged() && newspaper.movementSpeed() > calmSpeed &&
+        newspaper.isEnraged() && newspaper.isTransforming() &&
+            newspaper.movementSpeed() > calmSpeed &&
             newspaper.attackIntervalSeconds() < calmAttackInterval,
         "newspaper zombie enrages after its newspaper breaks"
     );
+    newspaper.updateSpecialState(2.0F);
+    passed &= check(!newspaper.isTransforming(), "newspaper transition state expires");
     return passed ? 0 : 1;
 }

@@ -92,7 +92,7 @@ if(BUILD_TESTING)
     add_executable(zombie_tests tests/ZombieTests.cpp)
     add_executable(almanac_data_tests tests/AlmanacDataTests.cpp)
     add_executable(visual_asset_tests tests/VisualAssetTests.cpp)
-    target_link_libraries(visual_asset_tests PRIVATE SFML::Graphics)
+    target_link_libraries(visual_asset_tests PRIVATE SFML::Graphics SFML::Audio)
     target_compile_definitions(
         visual_asset_tests
         PRIVATE OBJECT_PROJECT_SOURCE_DIR="${CMAKE_SOURCE_DIR}"

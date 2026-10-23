@@ -37,6 +37,23 @@ private:
         float duration{0.5F};
     };
 
+    struct ZombieSnapshot {
+        const Zombie* identity{};
+        ZombieType type{ZombieType::Normal};
+        int row{};
+        float x{};
+        bool slowed{};
+    };
+
+    struct ZombieDeathEffect {
+        ZombieType type{ZombieType::Normal};
+        int row{};
+        float x{};
+        bool slowed{};
+        float age{};
+        float duration{1.0F};
+    };
+
     static constexpr sf::Vector2f cardSize{46.0F, 64.0F};
     static constexpr sf::FloatRect shovelBounds{{600.0F, 15.0F}, {62.0F, 62.0F}};
     static constexpr sf::FloatRect almanacBounds{{790.0F, 18.0F}, {70.0F, 42.0F}};
@@ -60,7 +77,13 @@ private:
     void drawPauseOverlay(sf::RenderWindow& window) const;
     void drawResultOverlay(sf::RenderWindow& window) const;
     void drawFeedback(sf::RenderWindow& window) const;
-    void drawPlant(sf::RenderWindow& window, PlantType type, GridPosition position, bool preview) const;
+    void drawPlant(
+        sf::RenderWindow& window,
+        PlantType type,
+        GridPosition position,
+        bool preview,
+        float actionProgress = -1.0F
+    ) const;
     void drawHealthBar(sf::RenderWindow& window, float ratio, sf::Vector2f position, float width) const;
     void drawNumber(sf::RenderWindow& window, int value, sf::Vector2f position) const;
 
@@ -72,11 +95,12 @@ private:
     std::optional<GridPosition> hoveredCell_;
     std::vector<SoundCue> soundCues_;
     std::vector<PulseEffect> pulseEffects_;
+    std::vector<ZombieSnapshot> zombieSnapshots_;
+    std::vector<ZombieDeathEffect> zombieDeathEffects_;
     float animationTime_{};
     float waveBannerSeconds_{};
     int observedWave_{};
-    int observedTotalHealth_{};
-    std::size_t observedProjectileCount_{};
+    GameState observedGameState_{GameState::Running};
 
     sf::Texture backgroundTexture_;
     std::array<sf::Texture, plantTypeCount> cardTextures_;
@@ -84,8 +108,15 @@ private:
     std::array<sf::Texture, zombieTypeCount> zombieTextures_;
     std::array<std::vector<sf::Texture>, plantTypeCount> plantAnimationFrames_;
     std::array<std::vector<sf::Texture>, zombieTypeCount> zombieAnimationFrames_;
+    std::array<std::vector<sf::Texture>, zombieTypeCount> zombieAttackAnimationFrames_;
     std::vector<sf::Texture> poleWalkingAnimationFrames_;
+    std::vector<sf::Texture> poleJumpAnimationFrames_;
     std::vector<sf::Texture> newspaperEnragedAnimationFrames_;
+    std::vector<sf::Texture> newspaperEnragedAttackAnimationFrames_;
+    std::vector<sf::Texture> newspaperTransitionAnimationFrames_;
+    std::vector<sf::Texture> normalDeathAnimationFrames_;
+    std::vector<sf::Texture> poleDeathAnimationFrames_;
+    std::vector<sf::Texture> newspaperDeathAnimationFrames_;
     std::array<sf::Texture, 3> threepeaterStemTextures_;
     sf::Texture threepeaterHeadTexture_;
     sf::Texture potatoMineTexture_;

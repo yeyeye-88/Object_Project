@@ -63,6 +63,11 @@ int main() {
     repeaterCombat.spawnZombie(ZombieType::Conehead, 2, 800.0F);
     repeaterCombat.update(Repeater::attackIntervalSeconds, repeaterBoard, repeaterSuns);
     passed &= check(repeaterCombat.projectiles().size() == 2, "repeater fires two projectiles per attack");
+    const auto repeaterEvents = repeaterCombat.takeEvents();
+    passed &= check(
+        repeaterEvents.size() == 1 && repeaterEvents.front() == CombatEvent::ProjectileFired,
+        "one plant attack emits one sound event even when it launches two peas"
+    );
 
     CombatSystem threepeaterCombat;
     Board threepeaterBoard;

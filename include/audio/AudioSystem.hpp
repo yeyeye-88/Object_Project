@@ -16,6 +16,15 @@ enum class SoundCue {
     Attack,
     Hit,
     Wave,
+    Ready,
+    Explosion,
+    Mower,
+    PoleVault,
+    Newspaper,
+    Chomp,
+    FirePea,
+    Win,
+    Lose,
     Count,
 };
 
@@ -28,9 +37,6 @@ public:
 
 private:
     static constexpr std::size_t cueCount = static_cast<std::size_t>(SoundCue::Count);
-
-    sf::SoundBuffer makeTone(float frequency, float seconds, bool descending) const;
-    sf::SoundBuffer makeMusic() const;
 
     sf::SoundBuffer musicBuffer_;
     std::optional<sf::Sound> music_;

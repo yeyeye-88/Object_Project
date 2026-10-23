@@ -31,6 +31,10 @@ public:
 
     PlantType type() const { return type_; }
     GridPosition position() const { return position_; }
+    bool isPerformingAction() const { return actionAnimationRemaining_ > 0.0F; }
+    float actionAnimationProgress() const;
+    void beginActionAnimation();
+    void updateActionAnimation(float deltaSeconds);
     virtual bool blocksVaulting() const { return false; }
     virtual std::optional<PlantAction> update(
         float deltaSeconds,
@@ -38,8 +42,10 @@ public:
     ) = 0;
 
 private:
+    static constexpr float actionAnimationSeconds = 0.45F;
     PlantType type_;
     GridPosition position_;
+    float actionAnimationRemaining_{};
 };
 
 class Sunflower final : public Plant {

@@ -1,6 +1,7 @@
 #include "game/Zombie.hpp"
 
 #include <algorithm>
+#include <cmath>
 
 namespace object_project {
 
@@ -16,8 +17,12 @@ void Zombie::receiveDamage(const int amount) {
     if (amount <= 0) {
         return;
     }
+    const int armorBeforeDamage = armor_;
     const int armorDamage = std::min(armor_, amount);
     armor_ -= armorDamage;
+    if (armorBeforeDamage > 0 && armor_ == 0) {
+        onArmorBroken();
+    }
     takeDamage(amount - armorDamage);
 }
 
@@ -48,8 +53,10 @@ void Zombie::move(const float deltaSeconds) {
 bool Zombie::updateAttack(const float deltaSeconds, const bool blocked) {
     if (!blocked) {
         attackTimer_ = 0.0F;
+        attacking_ = false;
         return false;
     }
+    attacking_ = true;
     if (deltaSeconds <= 0.0F) {
         return false;
     }
@@ -77,8 +84,48 @@ FlagZombie::FlagZombie(const int row, const float x)
 PoleVaultingZombie::PoleVaultingZombie(const int row, const float x)
     : Zombie(row, x, maximumHealth, 0) {}
 
+void PoleVaultingZombie::useVault(const float visualStartX) {
+    vaultAvailable_ = false;
+    vaultRemainingSeconds_ = vaultAnimationSeconds;
+    vaultVisualStartX_ = visualStartX;
+}
+
+float PoleVaultingZombie::vaultProgress() const {
+    return 1.0F - vaultRemainingSeconds_ / vaultAnimationSeconds;
+}
+
+float PoleVaultingZombie::visualX() const {
+    if (!isVaulting()) {
+        return x();
+    }
+    const float progress = vaultProgress();
+    const float eased = progress * progress * (3.0F - 2.0F * progress);
+    return vaultVisualStartX_ + (x() - vaultVisualStartX_) * eased;
+}
+
+float PoleVaultingZombie::visualYOffset() const {
+    constexpr float pi = 3.14159265358979323846F;
+    return isVaulting() ? -52.0F * std::sin(pi * vaultProgress()) : 0.0F;
+}
+
+void PoleVaultingZombie::updateSpecialState(const float deltaSeconds) {
+    vaultRemainingSeconds_ = std::max(0.0F, vaultRemainingSeconds_ - deltaSeconds);
+}
+
 NewspaperZombie::NewspaperZombie(const int row, const float x)
     : Zombie(row, x, maximumHealth, newspaperArmor) {}
+
+void NewspaperZombie::onArmorBroken() {
+    transitionRemainingSeconds_ = transitionAnimationSeconds;
+}
+
+float NewspaperZombie::transformationProgress() const {
+    return 1.0F - transitionRemainingSeconds_ / transitionAnimationSeconds;
+}
+
+void NewspaperZombie::updateSpecialState(const float deltaSeconds) {
+    transitionRemainingSeconds_ = std::max(0.0F, transitionRemainingSeconds_ - deltaSeconds);
+}
 
 std::unique_ptr<Zombie> createZombie(
     const ZombieType type,
