@@ -63,7 +63,7 @@ int main() {
     );
 
     GameSession winningSession;
-    for (int step = 0; step < 600 && winningSession.state() == GameState::Running; ++step) {
+    for (int step = 0; step < 1100 && winningSession.state() == GameState::Running; ++step) {
         winningSession.update(0.1F);
         for (const auto& zombie : winningSession.combat().zombies()) {
             zombie->takeDamage(zombie->health());
@@ -87,9 +87,24 @@ int main() {
             tutorialSession.sun() == levelDefinition(LevelId::NightChallenge).initialSun,
         "starting another level resets the session with its configuration"
     );
+    passed &= check(
+        tutorialSession.tryPlace(PlantType::Sunflower, {0, 0}) == PlacementResult::Allowed &&
+            tutorialSession.tryPlace(PlantType::PuffShroom, {1, 0}) == PlacementResult::Allowed,
+        "night challenge allows sunflower and free puff-shroom"
+    );
+    tutorialSession.update(SunSystem::spawnIntervalSeconds * 2.0F);
+    passed &= check(
+        tutorialSession.suns().tokens().empty(),
+        "night challenge does not create sky sun before sunflower production"
+    );
+    tutorialSession.update(Sunflower::productionIntervalSeconds - 2.0F);
+    passed &= check(
+        tutorialSession.suns().tokens().size() == 1,
+        "night sunflower produces after its doubled interval"
+    );
 
     GameSession endlessSession(LevelId::EndlessDefense);
-    for (int step = 0; step < 250; ++step) {
+    for (int step = 0; step < 450; ++step) {
         endlessSession.update(0.1F);
         for (const auto& zombie : endlessSession.combat().zombies()) {
             zombie->takeDamage(zombie->health());

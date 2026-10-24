@@ -7,15 +7,17 @@ namespace object_project {
 SunSystem::SunSystem(const std::uint32_t seed)
     : initialSeed_(seed), random_(seed) {}
 
-void SunSystem::update(const float deltaSeconds) {
+void SunSystem::update(const float deltaSeconds, const bool skySunEnabled) {
     if (deltaSeconds <= 0.0F) {
         return;
     }
 
-    spawnTimer_ += deltaSeconds;
-    while (spawnTimer_ >= spawnIntervalSeconds) {
-        spawnTimer_ -= spawnIntervalSeconds;
-        spawn();
+    if (skySunEnabled) {
+        spawnTimer_ += deltaSeconds;
+        while (spawnTimer_ >= spawnIntervalSeconds) {
+            spawnTimer_ -= spawnIntervalSeconds;
+            spawn();
+        }
     }
 
     for (SunToken& token : tokens_) {

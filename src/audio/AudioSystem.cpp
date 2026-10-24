@@ -12,10 +12,12 @@ AudioSystem::AudioSystem() {
         "assets/pvz/audio/points.ogg",
         "assets/pvz/audio/plant1.ogg",
         "assets/pvz/audio/shoop.ogg",
+        "assets/pvz/audio/puff.ogg",
         "assets/pvz/audio/splat1.ogg",
         "assets/pvz/audio/hugewave.ogg",
         "assets/pvz/audio/readysetplant.ogg",
         "assets/pvz/audio/cherrybomb.ogg",
+        "assets/pvz/audio/potato_mine.ogg",
         "assets/pvz/audio/lawnmower.ogg",
         "assets/pvz/audio/polevault.ogg",
         "assets/pvz/audio/newspaper_rarrgh2.ogg",
@@ -30,18 +32,39 @@ AudioSystem::AudioSystem() {
         }
     }
 
-    if (musicBuffer_.loadFromFile("assets/pvz/audio/UraniwaNi.ogg")) {
-        music_.emplace(musicBuffer_);
-        music_->setLooping(true);
-        music_->play();
+    static constexpr std::array<std::string_view, musicTrackCount> musicPaths{{
+        "assets/pvz/audio/Mountains.ogg",
+        "assets/pvz/audio/UraniwaNi.ogg",
+    }};
+    for (std::size_t index = 0; index < musicTrackCount; ++index) {
+        if (!musicBuffers_[index].loadFromFile(std::string(musicPaths[index]))) {
+            continue;
+        }
     }
+    playMusic(MusicTrack::Menu);
 }
 
 void AudioSystem::applySettings(const AppSettings& settings) {
     effectsVolume_ = static_cast<float>(settings.effectsVolume());
+    musicVolume_ = static_cast<float>(settings.musicVolume());
     if (music_) {
-        music_->setVolume(static_cast<float>(settings.musicVolume()));
+        music_->setVolume(musicVolume_);
     }
+}
+
+void AudioSystem::playMusic(const MusicTrack track) {
+    if (activeMusicTrack_ == track && music_ && music_->getStatus() == sf::Sound::Status::Playing) {
+        return;
+    }
+    const std::size_t index = static_cast<std::size_t>(track);
+    if (index >= musicBuffers_.size() || musicBuffers_[index].getSampleCount() == 0) {
+        return;
+    }
+    music_.emplace(musicBuffers_[index]);
+    music_->setLooping(true);
+    music_->setVolume(musicVolume_);
+    music_->play();
+    activeMusicTrack_ = track;
 }
 
 void AudioSystem::play(const SoundCue cue) {

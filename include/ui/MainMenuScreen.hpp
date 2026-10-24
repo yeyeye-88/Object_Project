@@ -7,6 +7,8 @@ namespace object_project {
 enum class MainMenuAction {
     None,
     Play,
+    Puzzle,
+    MiniGames,
     Almanac,
     Settings,
     Help,

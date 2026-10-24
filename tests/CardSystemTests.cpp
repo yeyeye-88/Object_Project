@@ -29,6 +29,11 @@ int main() {
     passed &= check(cards.definition(PlantType::PotatoMine).cost == 25, "potato mine costs 25 sun");
     passed &= check(cards.definition(PlantType::CherryBomb).cost == 150, "cherry bomb costs 150 sun");
     passed &= check(cards.definition(PlantType::Torchwood).cost == 175, "torchwood costs 175 sun");
+    passed &= check(
+        cards.definition(PlantType::PuffShroom).cost == 0 &&
+            near(cards.definition(PlantType::PuffShroom).cooldownSeconds, 7.5F),
+        "puff-shroom is free and recharges quickly"
+    );
     passed &= check(!cards.isCoolingDown(PlantType::Peashooter), "cards start ready");
     cards.startCooldown(PlantType::Peashooter);
     passed &= check(cards.isCoolingDown(PlantType::Peashooter), "planting starts cooldown");

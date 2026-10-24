@@ -54,7 +54,21 @@ private:
         float duration{1.0F};
     };
 
-    static constexpr sf::Vector2f cardSize{46.0F, 64.0F};
+    struct ExplosionEffect {
+        PlantType type{PlantType::CherryBomb};
+        GridPosition position{};
+        float age{};
+        float duration{0.7F};
+    };
+
+    struct SporeHitEffect {
+        int row{};
+        float x{};
+        float age{};
+        float duration{0.25F};
+    };
+
+    static constexpr sf::Vector2f cardSize{43.0F, 64.0F};
     static constexpr sf::FloatRect shovelBounds{{600.0F, 15.0F}, {62.0F, 62.0F}};
     static constexpr sf::FloatRect almanacBounds{{790.0F, 18.0F}, {70.0F, 42.0F}};
     static constexpr sf::FloatRect pauseBounds{{874.0F, 18.0F}, {54.0F, 42.0F}};
@@ -82,7 +96,8 @@ private:
         PlantType type,
         GridPosition position,
         bool preview,
-        float actionProgress = -1.0F
+        float actionProgress = -1.0F,
+        sf::Color previewColor = sf::Color(255, 255, 255, 145)
     ) const;
     void drawHealthBar(sf::RenderWindow& window, float ratio, sf::Vector2f position, float width) const;
     void drawNumber(sf::RenderWindow& window, int value, sf::Vector2f position) const;
@@ -97,12 +112,15 @@ private:
     std::vector<PulseEffect> pulseEffects_;
     std::vector<ZombieSnapshot> zombieSnapshots_;
     std::vector<ZombieDeathEffect> zombieDeathEffects_;
+    std::vector<ExplosionEffect> explosionEffects_;
+    std::vector<SporeHitEffect> sporeHitEffects_;
     float animationTime_{};
     float waveBannerSeconds_{};
     int observedWave_{};
     GameState observedGameState_{GameState::Running};
 
     sf::Texture backgroundTexture_;
+    sf::Texture nightBackgroundTexture_;
     std::array<sf::Texture, plantTypeCount> cardTextures_;
     std::array<sf::Texture, plantTypeCount> plantTextures_;
     std::array<sf::Texture, zombieTypeCount> zombieTextures_;
@@ -117,6 +135,10 @@ private:
     std::vector<sf::Texture> normalDeathAnimationFrames_;
     std::vector<sf::Texture> poleDeathAnimationFrames_;
     std::vector<sf::Texture> newspaperDeathAnimationFrames_;
+    std::vector<sf::Texture> cherryExplosionAnimationFrames_;
+    std::vector<sf::Texture> potatoExplosionAnimationFrames_;
+    std::vector<sf::Texture> sporeAnimationFrames_;
+    std::vector<sf::Texture> sporeHitAnimationFrames_;
     std::array<sf::Texture, 3> threepeaterStemTextures_;
     sf::Texture threepeaterHeadTexture_;
     sf::Texture potatoMineTexture_;
@@ -128,12 +150,14 @@ private:
     sf::Texture sunTexture_;
     sf::Texture shovelTexture_;
     sf::Texture chooserTexture_;
+    sf::Texture almanacButtonTexture_;
     sf::Texture shovelSlotTexture_;
     sf::Texture overlayPanelTexture_;
     sf::Texture overlayButtonTexture_;
     sf::Texture resultPanelTexture_;
     sf::Texture zombiesWonTexture_;
     bool backgroundLoaded_{};
+    bool nightBackgroundLoaded_{};
     std::array<bool, plantTypeCount> cardLoaded_{};
     std::array<bool, plantTypeCount> plantLoaded_{};
     std::array<bool, zombieTypeCount> zombieLoaded_{};
@@ -148,6 +172,7 @@ private:
     bool sunLoaded_{};
     bool shovelLoaded_{};
     bool chooserLoaded_{};
+    bool almanacButtonLoaded_{};
     bool shovelSlotLoaded_{};
     bool overlayPanelLoaded_{};
     bool overlayButtonLoaded_{};

@@ -39,7 +39,8 @@ private:
     std::size_t nextSpawn_{};
     int currentWave_{1};
     std::size_t endlessSpawnCount_{};
-    float nextEndlessSpawnSeconds_{3.0F};
+    std::size_t endlessWaveSpawnCount_{};
+    float nextEndlessSpawnSeconds_{10.0F};
 };
 
 }  // namespace object_project

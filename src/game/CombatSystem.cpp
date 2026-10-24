@@ -44,13 +44,14 @@ Zombie& CombatSystem::spawnNormalZombie(const int row, const float x) {
 void CombatSystem::update(
     const float deltaSeconds,
     Board& board,
-    SunSystem& suns
+    SunSystem& suns,
+    const float sunflowerProductionIntervalMultiplier
 ) {
     if (deltaSeconds <= 0.0F || breached_) {
         return;
     }
 
-    updatePlants(deltaSeconds, board, suns);
+    updatePlants(deltaSeconds, board, suns, sunflowerProductionIntervalMultiplier);
     updateProjectiles(deltaSeconds, board);
     updateDelayedAreaDamages(deltaSeconds);
     updateZombies(deltaSeconds, board);
@@ -64,6 +65,8 @@ void CombatSystem::reset() {
     projectiles_.clear();
     delayedAreaDamages_.clear();
     events_.clear();
+    explosionEvents_.clear();
+    projectileImpactEvents_.clear();
     nextProjectileId_ = 1;
     nextAreaDamageId_ = 1;
     breached_ = false;
@@ -78,16 +81,29 @@ std::vector<CombatEvent> CombatSystem::takeEvents() {
     return events;
 }
 
+std::vector<ExplosionEvent> CombatSystem::takeExplosionEvents() {
+    std::vector<ExplosionEvent> events;
+    events.swap(explosionEvents_);
+    return events;
+}
+
+std::vector<ProjectileImpactEvent> CombatSystem::takeProjectileImpactEvents() {
+    std::vector<ProjectileImpactEvent> events;
+    events.swap(projectileImpactEvents_);
+    return events;
+}
+
 void CombatSystem::launchProjectile(
     const Projectile::Type type,
     const int row,
     const float x,
-    const int damage
+    const int damage,
+    const float maximumRange
 ) {
     if (row < 0 || row >= BoardGeometry::rows || damage <= 0) {
         return;
     }
-    projectiles_.push_back({nextProjectileId_++, row, x, damage, type});
+    projectiles_.push_back({nextProjectileId_++, row, x, damage, type, maximumRange});
 }
 
 void CombatSystem::applyAreaDamage(const AreaDamage& area) {
@@ -127,6 +143,22 @@ bool CombatSystem::hasZombieAhead(const int row, const float x) const {
     );
 }
 
+bool CombatSystem::hasZombieInRange(
+    const int row,
+    const float x,
+    const float range
+) const {
+    return std::any_of(
+        zombies_.begin(),
+        zombies_.end(),
+        [row, x, range](const std::unique_ptr<Zombie>& zombie) {
+            const float center = zombie->x() + zombieWidth * 0.5F;
+            return !zombie->isDead() && zombie->row() == row &&
+                   center > x && center <= x + range;
+        }
+    );
+}
+
 bool CombatSystem::hasZombieNear(const int row, const float x, const float radius) const {
     return std::any_of(
         zombies_.begin(),
@@ -135,6 +167,19 @@ bool CombatSystem::hasZombieNear(const int row, const float x, const float radiu
             const float center = zombie->x() + zombieWidth * 0.5F;
             return !zombie->isDead() && zombie->row() == row &&
                    std::abs(center - x) <= radius;
+        }
+    );
+}
+
+bool CombatSystem::hasZombieOverlappingPlant(const GridPosition position) const {
+    const float left = plantLeft(position);
+    const float right = plantRight(position);
+    return std::any_of(
+        zombies_.begin(),
+        zombies_.end(),
+        [position, left, right](const std::unique_ptr<Zombie>& zombie) {
+            return !zombie->isDead() && zombie->row() == position.row &&
+                   zombie->x() <= right && zombie->x() + zombieWidth >= left;
         }
     );
 }
@@ -165,7 +210,8 @@ void CombatSystem::damageNearestZombie(
 void CombatSystem::updatePlants(
     const float deltaSeconds,
     Board& board,
-    SunSystem& suns
+    SunSystem& suns,
+    const float sunflowerProductionIntervalMultiplier
 ) {
     for (int row = 0; row < BoardGeometry::rows; ++row) {
         for (int column = 0; column < BoardGeometry::columns; ++column) {
@@ -179,8 +225,16 @@ void CombatSystem::updatePlants(
                                        BoardGeometry::cellWidth * 0.5F;
             PlantUpdateContext context{
                 hasZombieAhead(row, originX),
-                hasZombieNear(row, plantCenterX, potatoMineTriggerRadius),
+                hasZombieOverlappingPlant(plant->position()),
+                sunflowerProductionIntervalMultiplier,
             };
+            if (plant->type() == PlantType::PuffShroom) {
+                context.enemyAhead = hasZombieInRange(
+                    row,
+                    originX,
+                    PuffShroom::attackRange
+                );
+            }
             if (plant->type() == PlantType::Threepeater) {
                 context.enemyAhead = context.enemyAhead ||
                     (row > 0 && hasZombieAhead(row - 1, originX)) ||
@@ -213,9 +267,19 @@ void CombatSystem::updatePlants(
                 plant->beginActionAnimation();
                 launchProjectile(Projectile::Type::FrozenPea, row, originX);
                 events_.push_back(CombatEvent::ProjectileFired);
+            } else if (action == PlantAction::FireSpore) {
+                plant->beginActionAnimation();
+                launchProjectile(
+                    Projectile::Type::Spore,
+                    row,
+                    originX,
+                    PuffShroom::sporeDamage,
+                    PuffShroom::attackRange
+                );
+                events_.push_back(CombatEvent::SporeFired);
             } else if (action == PlantAction::ExplodePotatoMine) {
                 damageNearestZombie(row, plantCenterX, potatoMineTriggerRadius, potatoMineDamage);
-                events_.push_back(CombatEvent::Explosion);
+                explosionEvents_.push_back({plantPosition, PlantType::PotatoMine});
                 board.remove(plantPosition);
             } else if (action == PlantAction::ExplodeCherryBomb) {
                 applyAreaDamage({
@@ -225,7 +289,7 @@ void CombatSystem::updatePlants(
                     cherryBombHorizontalRadius,
                     cherryBombDamage,
                 });
-                events_.push_back(CombatEvent::Explosion);
+                explosionEvents_.push_back({plantPosition, PlantType::CherryBomb});
                 board.remove(plantPosition);
             }
         }
@@ -236,6 +300,9 @@ void CombatSystem::updateProjectiles(const float deltaSeconds, const Board& boar
     for (Projectile& projectile : projectiles_) {
         const float previousX = projectile.x;
         projectile.x += projectileSpeed * deltaSeconds;
+        if (projectile.remainingRange >= 0.0F) {
+            projectile.remainingRange -= projectileSpeed * deltaSeconds;
+        }
 
         if (projectile.type == Projectile::Type::Pea) {
             for (int column = 0; column < BoardGeometry::columns; ++column) {
@@ -268,6 +335,11 @@ void CombatSystem::updateProjectiles(const float deltaSeconds, const Board& boar
         if (target != nullptr) {
             const int armorBeforeHit = target->armor();
             target->receiveDamage(projectile.damage);
+            projectileImpactEvents_.push_back({
+                projectile.type,
+                projectile.row,
+                projectile.x,
+            });
             events_.push_back(CombatEvent::ProjectileHit);
             if (target->type() == ZombieType::Newspaper && armorBeforeHit > 0 &&
                 target->armor() == 0) {
@@ -287,7 +359,8 @@ void CombatSystem::updateProjectiles(const float deltaSeconds, const Board& boar
             projectiles_.begin(),
             projectiles_.end(),
             [rightEdge](const Projectile& projectile) {
-                return projectile.damage <= 0 || projectile.x > rightEdge;
+                return projectile.damage <= 0 || projectile.x > rightEdge ||
+                       (projectile.remainingRange >= 0.0F && projectile.remainingRange <= 0.0F);
             }
         ),
         projectiles_.end()

@@ -70,12 +70,13 @@ AlmanacScreen::AlmanacScreen() {
         "assets/pvz/plants/peashooter.png",
         "assets/pvz/plants/wallnut.png",
         "assets/pvz/plants/repeater.png",
-        "assets/pvz/plants/threepeater_head.png",
+        "assets/pvz/animations/plants/threepeater/0.png",
         "assets/pvz/plants/snowpea.png",
-        "assets/pvz/plants/tallnut.png",
-        "assets/pvz/plants/potato_mine.png",
+        "assets/pvz/animations/plants/tallnut/0.png",
+        "assets/pvz/animations/plants/potatomine/0.png",
         "assets/pvz/plants/cherrybomb.png",
         "assets/pvz/plants/torchwood_body.png",
+        "assets/pvz/animations/plants/puffshroom/0.png",
     };
     const std::array<std::string, zombieTypeCount> zombiePaths{
         "assets/pvz/zombies/normal.png",
@@ -83,7 +84,7 @@ AlmanacScreen::AlmanacScreen() {
         "assets/pvz/zombies/buckethead.png",
         "assets/pvz/zombies/flag.png",
         "assets/pvz/zombies/pole_vaulting.gif",
-        "assets/pvz/zombies/newspaper.gif",
+        "assets/pvz/animations/zombies/newspaper/0.png",
     };
     for (std::size_t index = 0; index < plantTextures_.size(); ++index) {
         plantLoaded_[index] = plantTextures_[index].loadFromFile(plantPaths[index]);

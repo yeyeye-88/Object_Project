@@ -31,10 +31,12 @@ std::optional<PlantAction> Sunflower::update(
         return std::nullopt;
     }
     productionTimer_ += deltaSeconds;
-    if (productionTimer_ < productionIntervalSeconds) {
+    const float interval = productionIntervalSeconds *
+                           std::max(1.0F, context.sunProductionIntervalMultiplier);
+    if (productionTimer_ < interval) {
         return std::nullopt;
     }
-    productionTimer_ -= productionIntervalSeconds;
+    productionTimer_ -= interval;
     return PlantAction::ProduceSun;
 }
 
@@ -179,6 +181,24 @@ std::optional<PlantAction> Torchwood::update(
     return std::nullopt;
 }
 
+PuffShroom::PuffShroom(const GridPosition position)
+    : Plant(PlantType::PuffShroom, position, maximumHealth) {}
+
+std::optional<PlantAction> PuffShroom::update(
+    const float deltaSeconds,
+    const PlantUpdateContext& context
+) {
+    if (deltaSeconds <= 0.0F || !context.enemyAhead) {
+        return std::nullopt;
+    }
+    attackTimer_ += deltaSeconds;
+    if (attackTimer_ < attackIntervalSeconds) {
+        return std::nullopt;
+    }
+    attackTimer_ -= attackIntervalSeconds;
+    return PlantAction::FireSpore;
+}
+
 std::unique_ptr<Plant> createPlant(const PlantType type, const GridPosition position) {
     switch (type) {
         case PlantType::Sunflower:
@@ -201,6 +221,8 @@ std::unique_ptr<Plant> createPlant(const PlantType type, const GridPosition posi
             return std::make_unique<CherryBomb>(position);
         case PlantType::Torchwood:
             return std::make_unique<Torchwood>(position);
+        case PlantType::PuffShroom:
+            return std::make_unique<PuffShroom>(position);
         case PlantType::Count:
             break;
     }

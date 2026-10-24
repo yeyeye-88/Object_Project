@@ -3,11 +3,13 @@
 #include "core/AppSettings.hpp"
 #include "game/GameSession.hpp"
 #include "ui/AlmanacScreen.hpp"
+#include "ui/ArcadeGameScreen.hpp"
 #include "ui/GameScreen.hpp"
 #include "ui/HelpScreen.hpp"
 #include "ui/IntroScreen.hpp"
 #include "ui/LevelSelectScreen.hpp"
 #include "ui/MainMenuScreen.hpp"
+#include "ui/ModeSelectScreen.hpp"
 #include "ui/SettingsScreen.hpp"
 #include "ui/ZombieNoteScreen.hpp"
 
@@ -29,6 +31,8 @@ namespace {
 enum class AppScreen {
     Intro,
     MainMenu,
+    ModeSelect,
+    ArcadeGame,
     LevelSelect,
     ZombieNote,
     Game,
@@ -75,6 +79,8 @@ int main() {
     object_project::IntroScreen intro;
     object_project::AlmanacScreen almanac;
     object_project::MainMenuScreen mainMenu;
+    object_project::ModeSelectScreen modeSelect;
+    object_project::ArcadeGameScreen arcadeGame;
     object_project::LevelSelectScreen levelSelect;
     object_project::SettingsScreen settingsScreen(settings);
     object_project::ZombieNoteScreen zombieNote;
@@ -99,6 +105,14 @@ int main() {
                 if (action == object_project::MainMenuAction::Play) {
                     audio.play(object_project::SoundCue::Click);
                     activeScreen = AppScreen::LevelSelect;
+                } else if (action == object_project::MainMenuAction::Puzzle) {
+                    audio.play(object_project::SoundCue::Click);
+                    modeSelect.setCategory(object_project::ModeSelectCategory::Puzzle);
+                    activeScreen = AppScreen::ModeSelect;
+                } else if (action == object_project::MainMenuAction::MiniGames) {
+                    audio.play(object_project::SoundCue::Click);
+                    modeSelect.setCategory(object_project::ModeSelectCategory::MiniGames);
+                    activeScreen = AppScreen::ModeSelect;
                 } else if (action == object_project::MainMenuAction::Almanac) {
                     audio.play(object_project::SoundCue::Click);
                     almanacReturnScreen = AppScreen::MainMenu;
@@ -111,6 +125,25 @@ int main() {
                     activeScreen = AppScreen::Help;
                 } else if (action == object_project::MainMenuAction::Exit) {
                     window.close();
+                }
+            } else if (activeScreen == AppScreen::ModeSelect) {
+                const object_project::ModeSelectAction action =
+                    modeSelect.handleEvent(*event, window);
+                if (action == object_project::ModeSelectAction::Back) {
+                    audio.play(object_project::SoundCue::Click);
+                    activeScreen = AppScreen::MainMenu;
+                } else if (action == object_project::ModeSelectAction::FirstMode) {
+                    audio.play(object_project::SoundCue::Click);
+                    const object_project::ArcadeGame game =
+                        modeSelect.category() == object_project::ModeSelectCategory::Puzzle
+                            ? object_project::ArcadeGame::Vasebreaker
+                            : object_project::ArcadeGame::WallnutBowling;
+                    arcadeGame.start(game);
+                    activeScreen = AppScreen::ArcadeGame;
+                }
+            } else if (activeScreen == AppScreen::ArcadeGame) {
+                if (arcadeGame.handleEvent(*event, window)) {
+                    activeScreen = AppScreen::ModeSelect;
                 }
             } else if (activeScreen == AppScreen::LevelSelect) {
                 const object_project::LevelSelectAction action =
@@ -169,8 +202,15 @@ int main() {
         }
 
         const float deltaSeconds = std::min(frameClock.restart().asSeconds(), 0.1F);
+        audio.playMusic(
+            activeScreen == AppScreen::Game || activeScreen == AppScreen::ArcadeGame
+                ? object_project::MusicTrack::Gameplay
+                : object_project::MusicTrack::Menu
+        );
         if (activeScreen == AppScreen::Intro) {
             intro.update(deltaSeconds);
+        } else if (activeScreen == AppScreen::ArcadeGame) {
+            arcadeGame.update(deltaSeconds);
         } else if (activeScreen == AppScreen::Game) {
             session.update(deltaSeconds);
             screen.update(deltaSeconds);
@@ -186,6 +226,12 @@ int main() {
                 break;
             case AppScreen::MainMenu:
                 mainMenu.draw(window);
+                break;
+            case AppScreen::ModeSelect:
+                modeSelect.draw(window);
+                break;
+            case AppScreen::ArcadeGame:
+                arcadeGame.draw(window);
                 break;
             case AppScreen::LevelSelect:
                 levelSelect.draw(window);

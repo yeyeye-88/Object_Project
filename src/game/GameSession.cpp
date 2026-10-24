@@ -12,14 +12,15 @@ void GameSession::update(const float deltaSeconds) {
         return;
     }
     cards_.update(deltaSeconds);
-    suns_.update(deltaSeconds);
+    const bool isNight = level_.levelId() == LevelId::NightChallenge;
+    suns_.update(deltaSeconds, !isNight);
     for (const SpawnEvent& event : level_.update(deltaSeconds)) {
         combat_.spawnZombie(event.type, event.row);
     }
     if (level_.isEndless()) {
         highestEndlessWave_ = std::max(highestEndlessWave_, level_.currentWave());
     }
-    combat_.update(deltaSeconds, board_, suns_);
+    combat_.update(deltaSeconds, board_, suns_, isNight ? 2.0F : 1.0F);
 
     if (combat_.breached()) {
         state_ = GameState::Lost;

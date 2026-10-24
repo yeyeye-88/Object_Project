@@ -144,6 +144,27 @@ int main() {
         mineCombat.zombies().size() == 1 && !mineBoard.isOccupied({2, 3}),
         "armed potato mine destroys only one nearby zombie and removes itself"
     );
+    const auto mineExplosions = mineCombat.takeExplosionEvents();
+    passed &= check(
+        mineExplosions.size() == 1 &&
+            mineExplosions.front().plantType == PlantType::PotatoMine &&
+            mineExplosions.front().position == GridPosition{2, 3},
+        "potato mine emits a positioned visual effect event"
+    );
+
+    CombatSystem edgeMineCombat;
+    Board edgeMineBoard;
+    SunSystem edgeMineSuns(20U);
+    edgeMineBoard.place({2, 3}, PlantType::PotatoMine);
+    edgeMineCombat.spawnNormalZombie(
+        2,
+        BoardGeometry::cellLeft(3) + BoardGeometry::cellWidth - 8.0F
+    );
+    edgeMineCombat.update(PotatoMine::armingSeconds, edgeMineBoard, edgeMineSuns);
+    passed &= check(
+        edgeMineCombat.zombies().empty() && !edgeMineBoard.isOccupied({2, 3}),
+        "armed potato mine explodes when a zombie reaches its blocking edge"
+    );
 
     CombatSystem cherryCombat;
     Board cherryBoard;
@@ -167,6 +188,13 @@ int main() {
             cherryCombat.zombies().front()->row() == 4 &&
             !cherryBoard.isOccupied({2, 4}),
         "cherry bomb damages three lanes and removes itself"
+    );
+    const auto cherryExplosions = cherryCombat.takeExplosionEvents();
+    passed &= check(
+        cherryExplosions.size() == 1 &&
+            cherryExplosions.front().plantType == PlantType::CherryBomb &&
+            cherryExplosions.front().position == GridPosition{2, 4},
+        "cherry bomb emits a positioned visual effect event"
     );
 
     CombatSystem torchCombat;
@@ -203,6 +231,36 @@ int main() {
         frozenTorchCombat.projectiles().front().type == Projectile::Type::FrozenPea &&
             frozenTorchCombat.projectiles().front().damage == CombatSystem::projectileDamage,
         "torchwood does not transform frozen peas"
+    );
+
+    CombatSystem puffCombat;
+    Board puffBoard;
+    SunSystem puffSuns(26U);
+    puffBoard.place({2, 0}, PlantType::PuffShroom);
+    const float puffOrigin = BoardGeometry::cellLeft(0) + BoardGeometry::cellWidth * 0.72F;
+    Zombie& puffTarget = puffCombat.spawnNormalZombie(2, puffOrigin + 150.0F);
+    for (int step = 0; step < 30 && puffTarget.health() == NormalZombie::maximumHealth; ++step) {
+        puffCombat.update(0.1F, puffBoard, puffSuns);
+    }
+    passed &= check(
+        puffTarget.health() == NormalZombie::maximumHealth - PuffShroom::sporeDamage,
+        "puff-shroom damages a zombie inside its three-tile range"
+    );
+    const auto puffImpacts = puffCombat.takeProjectileImpactEvents();
+    passed &= check(
+        !puffImpacts.empty() && puffImpacts.back().type == Projectile::Type::Spore,
+        "spore collision emits its original hit-effect event"
+    );
+
+    CombatSystem farPuffCombat;
+    Board farPuffBoard;
+    SunSystem farPuffSuns(28U);
+    farPuffBoard.place({2, 0}, PlantType::PuffShroom);
+    farPuffCombat.spawnNormalZombie(2, puffOrigin + PuffShroom::attackRange + 40.0F);
+    farPuffCombat.update(PuffShroom::attackIntervalSeconds, farPuffBoard, farPuffSuns);
+    passed &= check(
+        farPuffCombat.projectiles().empty(),
+        "puff-shroom does not fire at zombies beyond three tiles"
     );
 
     CombatSystem vaultCombat;

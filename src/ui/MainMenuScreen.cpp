@@ -56,6 +56,12 @@ MainMenuAction MainMenuScreen::handleEvent(
         if (contains(playBounds, point)) {
             return MainMenuAction::Play;
         }
+        if (contains(puzzleBounds, point)) {
+            return MainMenuAction::Puzzle;
+        }
+        if (contains(miniGameBounds, point)) {
+            return MainMenuAction::MiniGames;
+        }
         if (contains(almanacBounds, point)) {
             return MainMenuAction::Almanac;
         }
@@ -115,10 +121,15 @@ void MainMenuScreen::draw(sf::RenderWindow& window) const {
         drawMenuAsset(window, adventureTexture_, playBounds, contains(playBounds, mouse));
     }
     if (puzzleLoaded_) {
-        drawMenuAsset(window, puzzleTexture_, puzzleBounds, false);
+        drawMenuAsset(window, puzzleTexture_, puzzleBounds, contains(puzzleBounds, mouse));
     }
     if (miniGameLoaded_) {
-        drawMenuAsset(window, miniGameTexture_, miniGameBounds, false);
+        drawMenuAsset(
+            window,
+            miniGameTexture_,
+            miniGameBounds,
+            contains(miniGameBounds, mouse)
+        );
     }
     if (almanacLoaded_) {
         drawMenuAsset(window, almanacTexture_, almanacBounds, contains(almanacBounds, mouse));

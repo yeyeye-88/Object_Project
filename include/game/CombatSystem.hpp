@@ -1,6 +1,7 @@
 #pragma once
 
 #include "game/BoardGeometry.hpp"
+#include "game/PlantType.hpp"
 #include "game/Zombie.hpp"
 
 #include <array>
@@ -22,7 +23,9 @@ struct Projectile {
         Pea,
         FrozenPea,
         FirePea,
+        Spore,
     } type{Type::Pea};
+    float remainingRange{-1.0F};
 };
 
 struct AreaDamage {
@@ -53,6 +56,7 @@ struct LawnMower {
 
 enum class CombatEvent {
     ProjectileFired,
+    SporeFired,
     ProjectileHit,
     Explosion,
     MowerStarted,
@@ -60,6 +64,17 @@ enum class CombatEvent {
     NewspaperBroken,
     ZombieBite,
     FirePeaIgnited,
+};
+
+struct ExplosionEvent {
+    GridPosition position{};
+    PlantType plantType{PlantType::CherryBomb};
+};
+
+struct ProjectileImpactEvent {
+    Projectile::Type type{Projectile::Type::Pea};
+    int row{};
+    float x{};
 };
 
 class CombatSystem {
@@ -72,7 +87,7 @@ public:
     static constexpr float mowerSpeed = 520.0F;
     static constexpr float frozenPeaSpeedMultiplier = 0.5F;
     static constexpr float frozenPeaDurationSeconds = 3.0F;
-    static constexpr float potatoMineTriggerRadius = BoardGeometry::cellWidth * 0.65F;
+    static constexpr float potatoMineTriggerRadius = BoardGeometry::cellWidth * 0.8F;
     static constexpr int potatoMineDamage = 300;
     static constexpr int cherryBombDamage = 500;
     static constexpr float cherryBombHorizontalRadius = BoardGeometry::cellWidth * 1.5F;
@@ -89,17 +104,25 @@ public:
         int row,
         float x = BoardGeometry::left + BoardGeometry::columns * BoardGeometry::cellWidth
     );
-    void update(float deltaSeconds, Board& board, SunSystem& suns);
+    void update(
+        float deltaSeconds,
+        Board& board,
+        SunSystem& suns,
+        float sunflowerProductionIntervalMultiplier = 1.0F
+    );
     void reset();
     void launchProjectile(
         Projectile::Type type,
         int row,
         float x,
-        int damage = projectileDamage
+        int damage = projectileDamage,
+        float maximumRange = -1.0F
     );
     void applyAreaDamage(const AreaDamage& area);
     void scheduleAreaDamage(const AreaDamage& area, float delaySeconds);
     std::vector<CombatEvent> takeEvents();
+    std::vector<ExplosionEvent> takeExplosionEvents();
+    std::vector<ProjectileImpactEvent> takeProjectileImpactEvents();
 
     bool breached() const { return breached_; }
     bool hasLivingZombies() const { return !zombies_.empty(); }
@@ -112,9 +135,16 @@ public:
 
 private:
     bool hasZombieAhead(int row, float x) const;
+    bool hasZombieInRange(int row, float x, float range) const;
     bool hasZombieNear(int row, float x, float radius) const;
+    bool hasZombieOverlappingPlant(GridPosition position) const;
     void damageNearestZombie(int row, float x, float radius, int damage);
-    void updatePlants(float deltaSeconds, Board& board, SunSystem& suns);
+    void updatePlants(
+        float deltaSeconds,
+        Board& board,
+        SunSystem& suns,
+        float sunflowerProductionIntervalMultiplier
+    );
     void updateProjectiles(float deltaSeconds, const Board& board);
     void updateDelayedAreaDamages(float deltaSeconds);
     void updateZombies(float deltaSeconds, Board& board);
@@ -125,6 +155,8 @@ private:
     std::vector<Projectile> projectiles_;
     std::vector<DelayedAreaDamage> delayedAreaDamages_;
     std::vector<CombatEvent> events_;
+    std::vector<ExplosionEvent> explosionEvents_;
+    std::vector<ProjectileImpactEvent> projectileImpactEvents_;
     std::array<LawnMower, BoardGeometry::rows> mowers_{};
     std::uint64_t nextProjectileId_{1};
     std::uint64_t nextAreaDamageId_{1};

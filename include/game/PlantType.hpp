@@ -15,6 +15,7 @@ enum class PlantType : std::size_t {
     PotatoMine,
     CherryBomb,
     Torchwood,
+    PuffShroom,
     Count,
 };
 

@@ -37,5 +37,10 @@ int main() {
     passed &= check(!firstStillExists, "expired sun is removed");
     suns.reset();
     passed &= check(suns.tokens().empty(), "reset clears all suns");
+    suns.update(SunSystem::spawnIntervalSeconds * 2.0F, false);
+    passed &= check(suns.tokens().empty(), "night mode does not spawn sky sun");
+    suns.spawnFromPlant({2, 2});
+    suns.update(1.0F, false);
+    passed &= check(suns.tokens().size() == 1, "plant-produced sun remains active at night");
     return passed ? 0 : 1;
 }

@@ -26,7 +26,7 @@ public:
 
     explicit SunSystem(std::uint32_t seed = 0xC0FFEEU);
 
-    void update(float deltaSeconds);
+    void update(float deltaSeconds, bool skySunEnabled = true);
     bool collectAt(float x, float y);
     void spawnFromPlant(GridPosition position);
     void reset();

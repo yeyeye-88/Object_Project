@@ -24,6 +24,13 @@ int main() {
         sunflower.update(0.1F, {}) == PlantAction::ProduceSun,
         "sunflower produces sun on schedule"
     );
+    Sunflower nightSunflower({1, 2});
+    passed &= check(
+        !nightSunflower.update(Sunflower::productionIntervalSeconds, {false, false, 2.0F}) &&
+            nightSunflower.update(Sunflower::productionIntervalSeconds, {false, false, 2.0F}) ==
+                PlantAction::ProduceSun,
+        "night sunflower takes twice as long to produce sun"
+    );
 
     Peashooter peashooter({2, 3});
     passed &= check(
@@ -99,5 +106,12 @@ int main() {
 
     Torchwood torchwood({2, 3});
     passed &= check(!torchwood.update(10.0F, {true, true}), "torchwood has no timed action");
+    PuffShroom puffShroom({2, 3});
+    passed &= check(
+        !puffShroom.update(PuffShroom::attackIntervalSeconds, {}) &&
+            puffShroom.update(PuffShroom::attackIntervalSeconds, {true, false}) ==
+                PlantAction::FireSpore,
+        "puff-shroom fires only when a nearby target is ahead"
+    );
     return passed ? 0 : 1;
 }

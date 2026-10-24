@@ -15,6 +15,7 @@ CardSystem::CardSystem() {
     definitions_[toIndex(PlantType::PotatoMine)] = {25, 20.0F};
     definitions_[toIndex(PlantType::CherryBomb)] = {150, 30.0F};
     definitions_[toIndex(PlantType::Torchwood)] = {175, 7.5F};
+    definitions_[toIndex(PlantType::PuffShroom)] = {0, 7.5F};
 }
 
 const CardDefinition& CardSystem::definition(const PlantType type) const {

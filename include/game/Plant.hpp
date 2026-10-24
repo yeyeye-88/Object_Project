@@ -12,6 +12,7 @@ namespace object_project {
 struct PlantUpdateContext {
     bool enemyAhead{};
     bool enemyNearby{};
+    float sunProductionIntervalMultiplier{1.0F};
 };
 
 enum class PlantAction {
@@ -22,6 +23,7 @@ enum class PlantAction {
     FireFrozenPea,
     ExplodePotatoMine,
     ExplodeCherryBomb,
+    FireSpore,
 };
 
 class Plant : public Entity {
@@ -156,6 +158,20 @@ public:
 
     explicit Torchwood(GridPosition position);
     std::optional<PlantAction> update(float deltaSeconds, const PlantUpdateContext& context) override;
+};
+
+class PuffShroom final : public Plant {
+public:
+    static constexpr int maximumHealth = 100;
+    static constexpr int sporeDamage = 20;
+    static constexpr float attackIntervalSeconds = 1.5F;
+    static constexpr float attackRange = BoardGeometry::cellWidth * 3.0F;
+
+    explicit PuffShroom(GridPosition position);
+    std::optional<PlantAction> update(float deltaSeconds, const PlantUpdateContext& context) override;
+
+private:
+    float attackTimer_{};
 };
 
 std::unique_ptr<Plant> createPlant(PlantType type, GridPosition position);

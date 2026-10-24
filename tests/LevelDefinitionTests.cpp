@@ -41,8 +41,15 @@ int main() {
     );
     passed &= check(
         night.mode == GameMode::Challenge && night.initialSun == 100 &&
-            !night.allowsPlant(PlantType::Sunflower),
-        "challenge mode limits sun and available plants"
+            night.allowsPlant(PlantType::Sunflower) &&
+            night.allowsPlant(PlantType::PuffShroom) &&
+            !garden.allowsPlant(PlantType::PuffShroom),
+        "night challenge keeps sunflower and adds its night-only puff-shroom"
+    );
+    passed &= check(
+        garden.schedule[3].timeSeconds - garden.schedule[2].timeSeconds >= 15.0F &&
+            night.schedule[3].timeSeconds - night.schedule[2].timeSeconds >= 15.0F,
+        "fixed levels leave preparation time between waves"
     );
     passed &= check(
         endless.mode == GameMode::Endless && endless.waveCount == 0 &&

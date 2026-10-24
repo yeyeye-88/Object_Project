@@ -49,11 +49,13 @@ add_executable(pvz_game
     src/audio/AudioSystem.cpp
     src/main.cpp
     src/ui/AlmanacScreen.cpp
+    src/ui/ArcadeGameScreen.cpp
     src/ui/GameScreen.cpp
     src/ui/HelpScreen.cpp
     src/ui/IntroScreen.cpp
     src/ui/LevelSelectScreen.cpp
     src/ui/MainMenuScreen.cpp
+    src/ui/ModeSelectScreen.cpp
     src/ui/SettingsScreen.cpp
     src/ui/ZombieNoteScreen.cpp
 )
