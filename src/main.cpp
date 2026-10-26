@@ -203,9 +203,11 @@ int main() {
 
         const float deltaSeconds = std::min(frameClock.restart().asSeconds(), 0.1F);
         audio.playMusic(
-            activeScreen == AppScreen::Game || activeScreen == AppScreen::ArcadeGame
-                ? object_project::MusicTrack::Gameplay
-                : object_project::MusicTrack::Menu
+            activeScreen == AppScreen::ArcadeGame
+                ? object_project::MusicTrack::Minigame
+                : activeScreen == AppScreen::Game
+                    ? object_project::MusicTrack::Gameplay
+                    : object_project::MusicTrack::Menu
         );
         if (activeScreen == AppScreen::Intro) {
             intro.update(deltaSeconds);

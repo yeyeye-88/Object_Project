@@ -33,6 +33,7 @@ enum class SoundCue {
 enum class MusicTrack {
     Menu,
     Gameplay,
+    Minigame,
     Count,
 };
 

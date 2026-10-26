@@ -35,6 +35,7 @@ AudioSystem::AudioSystem() {
     static constexpr std::array<std::string_view, musicTrackCount> musicPaths{{
         "assets/pvz/audio/Mountains.ogg",
         "assets/pvz/audio/UraniwaNi.ogg",
+        "assets/pvz/audio/Loonboon.ogg",
     }};
     for (std::size_t index = 0; index < musicTrackCount; ++index) {
         if (!musicBuffers_[index].loadFromFile(std::string(musicPaths[index]))) {
