@@ -22,9 +22,13 @@ LevelSelectScreen::LevelSelectScreen()
 LevelSelectAction LevelSelectScreen::handleEvent(
     const sf::Event& event,
     const sf::RenderWindow& window
-) const {
+) {
     if (const auto* key = event.getIf<sf::Event::KeyPressed>()) {
         if (key->scancode == sf::Keyboard::Scancode::Escape) {
+            if (endlessDialogVisible_) {
+                endlessDialogVisible_ = false;
+                return {};
+            }
             return {LevelSelectActionType::Back, LevelId::Garden};
         }
     }
@@ -33,19 +37,43 @@ LevelSelectAction LevelSelectScreen::handleEvent(
             return {};
         }
         const sf::Vector2f point = window.mapPixelToCoords(click->position);
+        if (endlessDialogVisible_) {
+            if (resumeEndlessBounds.contains(point)) {
+                endlessDialogVisible_ = false;
+                return {LevelSelectActionType::ResumeEndless, LevelId::EndlessDefense};
+            }
+            if (freshEndlessBounds.contains(point)) {
+                endlessDialogVisible_ = false;
+                return {LevelSelectActionType::StartLevel, LevelId::EndlessDefense};
+            }
+            if (cancelEndlessBounds.contains(point)) {
+                endlessDialogVisible_ = false;
+            }
+            return {};
+        }
         if (backBounds.contains(point)) {
             return {LevelSelectActionType::Back, LevelId::Garden};
         }
         for (std::size_t index = 0; index < levelBounds.size(); ++index) {
             if (levelBounds[index].contains(point)) {
+                const LevelId selected = static_cast<LevelId>(index);
+                if (selected == LevelId::EndlessDefense && hasEndlessResume_) {
+                    endlessDialogVisible_ = true;
+                    return {};
+                }
                 return {
                     LevelSelectActionType::StartLevel,
-                    static_cast<LevelId>(index),
+                    selected,
                 };
             }
         }
     }
     return {};
+}
+
+void LevelSelectScreen::setEndlessProgress(const int highestWave, const bool hasResume) {
+    highestEndlessWave_ = std::max(1, highestWave);
+    hasEndlessResume_ = hasResume;
 }
 
 void LevelSelectScreen::draw(sf::RenderWindow& window) const {
@@ -126,6 +154,34 @@ void LevelSelectScreen::draw(sf::RenderWindow& window) const {
         window.draw(back);
     }
     drawText(window, "返回", 20, {121.0F, 531.0F}, {238, 234, 206});
+
+    if (endlessDialogVisible_) {
+        sf::RectangleShape veil({960.0F, 600.0F});
+        veil.setFillColor({8, 13, 9, 185});
+        window.draw(veil);
+        sf::RectangleShape panel({430.0F, 330.0F});
+        panel.setPosition({265.0F, 170.0F});
+        panel.setFillColor({92, 57, 30, 245});
+        panel.setOutlineColor({231, 190, 91});
+        panel.setOutlineThickness(4.0F);
+        window.draw(panel);
+        drawText(window, "无尽模式", 34, {406.0F, 191.0F}, {255, 224, 112});
+        drawText(window, "历史最高波次：" + std::to_string(highestEndlessWave_), 20,
+                 {389.0F, 237.0F}, sf::Color::White);
+        const auto drawChoice = [&](const sf::FloatRect& bounds, const std::string& label) {
+            sf::RectangleShape button(bounds.size);
+            button.setPosition(bounds.position);
+            button.setFillColor({104, 64, 31});
+            button.setOutlineColor({245, 201, 92});
+            button.setOutlineThickness(2.0F);
+            window.draw(button);
+            drawText(window, label, 21, {bounds.position.x + 55.0F, bounds.position.y + 13.0F},
+                     {255, 241, 194});
+        };
+        drawChoice(resumeEndlessBounds, "继续上次完整战局");
+        drawChoice(freshEndlessBounds, "从第 1 波重新开始");
+        drawChoice(cancelEndlessBounds, "取消");
+    }
 }
 
 void LevelSelectScreen::drawText(

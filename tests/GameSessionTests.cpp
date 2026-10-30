@@ -122,5 +122,31 @@ int main() {
         endlessSession.highestEndlessWave() == recordedWave,
         "restarting endless mode preserves the in-app wave record"
     );
+
+    GameSession snapshotSource(LevelId::EndlessDefense);
+    passed &= check(
+        snapshotSource.tryPlace(PlantType::Sunflower, {2, 2}) == PlacementResult::Allowed,
+        "endless snapshot source accepts a plant"
+    );
+    Zombie& savedZombie = snapshotSource.combat().spawnZombie(
+        ZombieType::Buckethead,
+        3,
+        612.0F
+    );
+    savedZombie.receiveDamage(80);
+    savedZombie.applySlow(0.5F, 2.5F);
+    snapshotSource.combat().launchProjectile(Projectile::Type::FrozenPea, 3, 410.0F);
+    const GameSessionState savedState = snapshotSource.captureState();
+    GameSession restoredSession(LevelId::EndlessDefense);
+    passed &= check(restoredSession.restoreState(savedState), "complete endless snapshot restores");
+    passed &= check(
+        restoredSession.board().isOccupied({2, 2}) &&
+            restoredSession.cards().isCoolingDown(PlantType::Sunflower) &&
+            restoredSession.combat().zombies().size() == 1 &&
+            restoredSession.combat().zombies().front()->armor() == savedZombie.armor() &&
+            restoredSession.combat().zombies().front()->isSlowed() &&
+            restoredSession.combat().projectiles().size() == 1,
+        "restored endless snapshot keeps plants, cooldowns, zombies and projectiles"
+    );
     return passed ? 0 : 1;
 }

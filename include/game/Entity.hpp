@@ -11,6 +11,9 @@ public:
     int health() const { return health_; }
     int maxHealth() const { return maxHealth_; }
     bool isDead() const { return health_ <= 0; }
+    void restoreHealth(const int health) {
+        health_ = std::clamp(health, 0, maxHealth_);
+    }
 
     void takeDamage(const int amount) {
         if (amount > 0) {

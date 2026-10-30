@@ -7,6 +7,15 @@
 
 namespace object_project {
 
+struct LevelSystemState {
+    float elapsedSeconds{};
+    std::size_t nextSpawn{};
+    int currentWave{1};
+    std::size_t endlessSpawnCount{};
+    std::size_t endlessWaveSpawnCount{};
+    float nextEndlessSpawnSeconds{10.0F};
+};
+
 class LevelSystem {
 public:
     explicit LevelSystem(LevelId levelId = LevelId::Garden);
@@ -14,6 +23,9 @@ public:
     std::vector<SpawnEvent> update(float deltaSeconds);
     void selectLevel(LevelId levelId);
     void reset();
+    void startEndlessAtWave(int wave);
+    LevelSystemState captureState() const;
+    bool restoreState(const LevelSystemState& state);
 
     bool allSpawned() const {
         return !isEndless() && nextSpawn_ >= definition().schedule.size();

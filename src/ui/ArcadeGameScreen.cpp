@@ -45,9 +45,9 @@ const sf::Texture* animatedFrame(const std::vector<sf::Texture>& frames, const f
 }
 
 void fitSprite(sf::Sprite& sprite, const float width, const float height) {
-    const sf::Vector2u size = sprite.getTexture().getSize();
-    if (size.x == 0 || size.y == 0) return;
-    const float scale = std::min(width / static_cast<float>(size.x), height / static_cast<float>(size.y));
+    const sf::FloatRect bounds = sprite.getLocalBounds();
+    if (bounds.size.x <= 0.0F || bounds.size.y <= 0.0F) return;
+    const float scale = std::min(width / bounds.size.x, height / bounds.size.y);
     sprite.setScale({scale, scale});
 }
 
@@ -89,16 +89,41 @@ ArcadeGameScreen::ArcadeGameScreen()
     squashFrames_ = loadFrames("assets/pvz/animations/plants/squash", 0, 16);
     squashAttackFrames_ = loadFrames("assets/pvz/animations/plants/squash_attack", 0, 3);
     normalZombieFrames_ = loadFrames("assets/pvz/animations/zombies/normal", 0, 21);
+    coneZombieFrames_ = loadFrames("assets/pvz/animations/zombies/conehead", 0, 20);
     bucketZombieFrames_ = loadFrames("assets/pvz/animations/zombies/buckethead", 0, 14);
+    flagZombieFrames_ = loadFrames("assets/pvz/animations/zombies/flag", 0, 11);
+    newspaperZombieFrames_ = loadFrames("assets/pvz/animations/zombies/newspaper", 0, 18);
     jackboxFrames_ = loadFrames("assets/pvz/animations/zombies/jackbox", 0, 7);
     normalAttackFrames_ = loadFrames("assets/pvz/animations/zombies/attack/normal", 0, 20);
+    coneAttackFrames_ = loadFrames("assets/pvz/animations/zombies/attack/conehead", 0, 10);
     bucketAttackFrames_ = loadFrames("assets/pvz/animations/zombies/attack/buckethead", 0, 10);
+    flagAttackFrames_ = loadFrames("assets/pvz/animations/zombies/attack/flag", 0, 10);
+    newspaperAttackFrames_ = loadFrames("assets/pvz/animations/zombies/attack/newspaper", 0, 7);
     jackboxAttackFrames_ = loadFrames("assets/pvz/animations/zombies/attack/jackbox", 0, 6);
     normalDeathFrames_ = loadFrames("assets/pvz/animations/zombies/death/normal", 0, 9);
+    normalDamagedFrames_ = loadFrames("assets/pvz/animations/zombies/damaged/normal", 0, 17);
+    normalDamagedAttackFrames_ = loadFrames("assets/pvz/animations/zombies/damaged_attack/normal", 0, 10);
     jackboxDeathFrames_ = loadFrames("assets/pvz/animations/zombies/death/jackbox", 0, 8);
     peaHitFrames_ = loadFrames("assets/pvz/animations/effects/pea_hit", 0, 0);
     wallnutFrames_ = loadFrames("assets/pvz/animations/minigames/wallnut_roll", 0, 7);
     explodeNutFrames_ = loadFrames("assets/pvz/animations/minigames/explodenut_roll", 0, 7);
+    explosionFrames_ = loadFrames("assets/pvz/animations/effects/cherry_explosion", 0, 12);
+    const std::array<std::string, 3> bucketArmorPaths{
+        "assets/pvz/zombies/armor/bucket_intact.png",
+        "assets/pvz/zombies/armor/bucket_damaged.png",
+        "assets/pvz/zombies/armor/bucket_critical.png",
+    };
+    for (std::size_t index = 0; index < bucketArmorPaths.size(); ++index) {
+        bucketArmorLoaded_[index] = bucketArmorTextures_[index].loadFromFile(bucketArmorPaths[index]);
+    }
+    const std::array<std::string, 3> coneArmorPaths{
+        "assets/pvz/zombies/armor/cone_intact.png",
+        "assets/pvz/zombies/armor/cone_damaged.png",
+        "assets/pvz/zombies/armor/cone_critical.png",
+    };
+    for (std::size_t index = 0; index < coneArmorPaths.size(); ++index) {
+        coneArmorLoaded_[index] = coneArmorTextures_[index].loadFromFile(coneArmorPaths[index]);
+    }
 
     const auto loadSound = [](sf::SoundBuffer& buffer, std::optional<sf::Sound>& sound, const char* path) {
         if (buffer.loadFromFile(path)) sound.emplace(buffer);
@@ -138,6 +163,7 @@ void ArcadeGameScreen::resetVasebreaker() {
     shatterEffects_.clear();
     hitEffects_.clear();
     deathEffects_.clear();
+    explosionEffects_.clear();
     vases_.clear();
 
     std::vector<VaseContent> contents;
@@ -174,10 +200,12 @@ void ArcadeGameScreen::resetBowling() {
     shatterEffects_.clear();
     hitEffects_.clear();
     deathEffects_.clear();
+    explosionEffects_.clear();
     conveyorCards_.clear();
+    conveyorCardsProduced_ = 0;
     mowerReady_.fill(true);
     spawnTimer_ = 8.0F;
-    conveyorTimer_ = 0.2F;
+    conveyorTimer_ = 0.0F;
     spawnedZombies_ = 0;
     defeatedZombies_ = 0;
 }
@@ -269,17 +297,17 @@ bool ArcadeGameScreen::handleEvent(const sf::Event& event, const sf::RenderWindo
             case VaseContent::NormalZombie:
                 plant = false;
                 zombies_.push_back({vase.row, cellX(vase.column) + 35.0F, VaseZombie::Normal,
-                                    100.0F, 18.0F, 0.0F, 0.0F});
+                                    100.0F, 100.0F, 18.0F, 18.0F});
                 break;
             case VaseContent::Buckethead:
                 plant = false;
                 zombies_.push_back({vase.row, cellX(vase.column) + 35.0F, VaseZombie::Buckethead,
-                                    300.0F, 15.0F, 0.0F, 0.0F});
+                                    300.0F, 300.0F, 15.0F, 15.0F});
                 break;
             case VaseContent::Jackbox:
                 plant = false;
                 zombies_.push_back({vase.row, cellX(vase.column) + 35.0F, VaseZombie::Jackbox,
-                                    150.0F, 17.0F, 0.0F, 0.0F});
+                                    150.0F, 150.0F, 17.0F, 17.0F});
                 playSound(jackboxSound_);
                 break;
         }
@@ -295,6 +323,7 @@ void ArcadeGameScreen::update(const float deltaSeconds) {
     for (ShatterEffect& effect : shatterEffects_) effect.age += deltaSeconds;
     for (HitEffect& effect : hitEffects_) effect.age += deltaSeconds;
     for (DeathEffect& effect : deathEffects_) effect.age += deltaSeconds;
+    for (ExplosionEffect& effect : explosionEffects_) effect.age += deltaSeconds;
     shatterEffects_.erase(
         std::remove_if(shatterEffects_.begin(), shatterEffects_.end(), [](const ShatterEffect& effect) {
             return effect.age > 0.45F;
@@ -309,6 +338,11 @@ void ArcadeGameScreen::update(const float deltaSeconds) {
         std::remove_if(deathEffects_.begin(), deathEffects_.end(), [](const DeathEffect& effect) {
             return effect.age > 0.85F;
         }), deathEffects_.end()
+    );
+    explosionEffects_.erase(
+        std::remove_if(explosionEffects_.begin(), explosionEffects_.end(), [](const ExplosionEffect& effect) {
+            return effect.age > 0.72F;
+        }), explosionEffects_.end()
     );
     if (finished_) return;
     if (game_ == ArcadeGame::Vasebreaker) updateVasebreaker(deltaSeconds);
@@ -354,7 +388,10 @@ void ArcadeGameScreen::updateVasebreaker(const float deltaSeconds) {
             if (zombie.row != projectile.row || std::abs(zombie.x - projectile.x) >= 28.0F) continue;
             zombie.health -= 35.0F;
             zombie.damageFlash = 0.12F;
-            if (projectile.frozen) zombie.speed = std::min(zombie.speed, 10.0F);
+            if (projectile.frozen) {
+                zombie.slowRemaining = 3.0F;
+                zombie.speed = zombie.baseSpeed * 0.5F;
+            }
             hitEffects_.push_back({{zombie.x + 8.0F, laneY(zombie.row) - 20.0F},
                                    0.0F, projectile.frozen});
             projectile.x = 1100.0F;
@@ -367,6 +404,8 @@ void ArcadeGameScreen::updateVasebreaker(const float deltaSeconds) {
         zombie.age += deltaSeconds;
         zombie.attackTimer -= deltaSeconds;
         zombie.damageFlash = std::max(0.0F, zombie.damageFlash - deltaSeconds);
+        zombie.slowRemaining = std::max(0.0F, zombie.slowRemaining - deltaSeconds);
+        zombie.speed = zombie.slowRemaining > 0.0F ? zombie.baseSpeed * 0.5F : zombie.baseSpeed;
         zombie.attacking = false;
         Plant* blocker = nullptr;
         for (Plant& plant : plants_) {
@@ -388,6 +427,7 @@ void ArcadeGameScreen::updateVasebreaker(const float deltaSeconds) {
         }
         if (zombie.type == VaseZombie::Jackbox && zombie.age > 8.5F && zombie.health > 0.0F) {
             zombie.health = 0.0F;
+            explosionEffects_.push_back({zombie.row, zombie.x, 0.0F});
             for (Plant& plant : plants_) {
                 if (std::abs(plant.row - zombie.row) <= 1 &&
                     std::abs((cellX(plant.column) + 35.0F) - zombie.x) < 115.0F) {
@@ -428,27 +468,51 @@ void ArcadeGameScreen::updateVasebreaker(const float deltaSeconds) {
 void ArcadeGameScreen::updateBowling(const float deltaSeconds) {
     conveyorTimer_ -= deltaSeconds;
     if (conveyorTimer_ <= 0.0F && conveyorCards_.size() < 6) {
-        const int produced = spawnedZombies_ + defeatedZombies_ + static_cast<int>(conveyorCards_.size());
-        conveyorCards_.push_back({685.0F, produced > 0 && produced % 5 == 0});
-        conveyorTimer_ = 3.0F;
+        const bool firstCard = conveyorCardsProduced_ == 0;
+        conveyorCards_.push_back({firstCard ? 250.0F : 685.0F,
+                                  conveyorCardsProduced_ > 0 && conveyorCardsProduced_ % 5 == 0});
+        ++conveyorCardsProduced_;
+        conveyorTimer_ = 4.2F;
     }
     std::sort(conveyorCards_.begin(), conveyorCards_.end(), [](const ConveyorCard& left, const ConveyorCard& right) {
         return left.x < right.x;
     });
     for (std::size_t index = 0; index < conveyorCards_.size(); ++index) {
         const float target = 250.0F + static_cast<float>(index) * 69.0F;
-        conveyorCards_[index].x = std::max(target, conveyorCards_[index].x - 42.0F * deltaSeconds);
+        conveyorCards_[index].x = std::max(target, conveyorCards_[index].x - 24.0F * deltaSeconds);
     }
 
     spawnTimer_ -= deltaSeconds;
-    if (spawnedZombies_ < 24 && spawnTimer_ <= 0.0F) {
+    constexpr int totalBowlingZombies = 30;
+    if (spawnedZombies_ < totalBowlingZombies && spawnTimer_ <= 0.0F) {
         const int row = (spawnedZombies_ * 3 + spawnedZombies_ / 4) % 5;
-        const bool bucket = spawnedZombies_ >= 7 && spawnedZombies_ % 4 == 0;
-        zombies_.push_back({row, 865.0F, bucket ? VaseZombie::Buckethead : VaseZombie::Normal,
-                            bucket ? 300.0F : 100.0F, 16.0F + spawnedZombies_ * 0.18F,
-                            0.0F, 0.0F});
+        VaseZombie type = VaseZombie::Normal;
+        float health = 100.0F;
+        float speed = 15.5F;
+        if (spawnedZombies_ >= 6 && spawnedZombies_ % 3 == 1) {
+            type = VaseZombie::Conehead;
+            health = 180.0F;
+            speed = 14.5F;
+        }
+        if (spawnedZombies_ >= 12 && spawnedZombies_ % 4 == 0) {
+            type = VaseZombie::Buckethead;
+            health = 300.0F;
+            speed = 13.5F;
+        }
+        if (spawnedZombies_ >= 18 && spawnedZombies_ % 5 == 2) {
+            type = VaseZombie::Flag;
+            health = 120.0F;
+            speed = 18.0F;
+        }
+        if (spawnedZombies_ >= 22 && spawnedZombies_ % 5 == 4) {
+            type = VaseZombie::Newspaper;
+            health = 180.0F;
+            speed = 17.0F;
+        }
+        speed += static_cast<float>(spawnedZombies_ / 8) * 0.6F;
+        zombies_.push_back({row, 865.0F, type, health, health, speed, speed});
         ++spawnedZombies_;
-        spawnTimer_ = std::max(1.5F, 3.2F - spawnedZombies_ * 0.055F);
+        spawnTimer_ = std::max(1.75F, 3.8F - spawnedZombies_ * 0.06F);
     }
 
     for (Nut& nut : nuts_) {
@@ -462,6 +526,7 @@ void ArcadeGameScreen::updateBowling(const float deltaSeconds) {
                         nearby.health = 0.0F;
                     }
                 }
+                explosionEffects_.push_back({zombie.row, zombie.x, 0.0F});
                 nut.x = 1100.0F;
                 playSound(explosionSound_);
             } else {
@@ -504,7 +569,7 @@ void ArcadeGameScreen::updateBowling(const float deltaSeconds) {
     nuts_.erase(std::remove_if(nuts_.begin(), nuts_.end(), [](const Nut& nut) {
         return nut.x > 1000.0F;
     }), nuts_.end());
-    if (spawnedZombies_ == 24 && zombies_.empty()) {
+    if (spawnedZombies_ == totalBowlingZombies && zombies_.empty()) {
         finished_ = true;
         won_ = true;
     }
@@ -573,7 +638,9 @@ void ArcadeGameScreen::drawVasebreaker(sf::RenderWindow& window) const {
                 window,
                 {cellX(packet.column) + (cellWidth - seedPacketSize.x) * 0.5F,
                  laneY(packet.row) - seedPacketSize.y * 0.5F},
-                frames.front()
+                frames.front(),
+                false,
+                packet.type == VasePlant::Squash
             );
         }
     }
@@ -594,7 +661,7 @@ void ArcadeGameScreen::drawVasebreaker(sf::RenderWindow& window) const {
             static_cast<std::size_t>(effect.age / 0.85F * frames.size()), frames.size() - 1
         );
         sf::Sprite sprite(frames[frame]);
-        placeBottomCenteredAtHeight(sprite, effect.x, laneY(effect.row) + 47.0F, 142.0F);
+        placeBottomCenteredAtHeight(sprite, effect.x, laneY(effect.row) + 47.0F, 126.0F);
         window.draw(sprite);
     }
     for (const HitEffect& effect : hitEffects_) {
@@ -604,6 +671,19 @@ void ArcadeGameScreen::drawVasebreaker(sf::RenderWindow& window) const {
         hit.setPosition(effect.position);
         if (effect.frozen) hit.setColor({175, 225, 255, 230});
         window.draw(hit);
+    }
+    for (const ExplosionEffect& effect : explosionEffects_) {
+        if (explosionFrames_.empty()) continue;
+        const std::size_t frame = std::min(
+            static_cast<std::size_t>(effect.age / 0.72F * explosionFrames_.size()),
+            explosionFrames_.size() - 1
+        );
+        sf::Sprite explosion(explosionFrames_[frame]);
+        fitSprite(explosion, 185.0F, 185.0F);
+        const sf::FloatRect bounds = explosion.getGlobalBounds();
+        explosion.setPosition({effect.x - bounds.size.x * 0.5F,
+                               laneY(effect.row) - bounds.size.y * 0.5F});
+        window.draw(explosion);
     }
     for (const ShatterEffect& effect : shatterEffects_) {
         sf::Sprite chunks(vaseChunksTexture_);
@@ -670,7 +750,7 @@ void ArcadeGameScreen::drawBowling(sf::RenderWindow& window) const {
             normalDeathFrames_.size() - 1
         );
         sf::Sprite sprite(normalDeathFrames_[frame]);
-        placeBottomCenteredAtHeight(sprite, effect.x, laneY(effect.row) + 47.0F, 142.0F);
+        placeBottomCenteredAtHeight(sprite, effect.x, laneY(effect.row) + 47.0F, 126.0F);
         window.draw(sprite);
     }
     for (const HitEffect& effect : hitEffects_) {
@@ -680,12 +760,25 @@ void ArcadeGameScreen::drawBowling(sf::RenderWindow& window) const {
         hit.setPosition(effect.position);
         window.draw(hit);
     }
+    for (const ExplosionEffect& effect : explosionEffects_) {
+        if (explosionFrames_.empty()) continue;
+        const std::size_t frame = std::min(
+            static_cast<std::size_t>(effect.age / 0.72F * explosionFrames_.size()),
+            explosionFrames_.size() - 1
+        );
+        sf::Sprite explosion(explosionFrames_[frame]);
+        fitSprite(explosion, 185.0F, 185.0F);
+        const sf::FloatRect bounds = explosion.getGlobalBounds();
+        explosion.setPosition({effect.x - bounds.size.x * 0.5F,
+                               laneY(effect.row) - bounds.size.y * 0.5F});
+        window.draw(explosion);
+    }
 
     sf::Sprite meter(flagMeterTexture_);
     meter.setPosition({785.0F, 545.0F});
     meter.setScale({1.0F, 0.85F});
     window.draw(meter);
-    const float progress = static_cast<float>(defeatedZombies_) / 24.0F;
+    const float progress = std::min(1.0F, static_cast<float>(defeatedZombies_) / 30.0F);
     sf::Sprite fill(flagProgressTexture_);
     const sf::Vector2u fillSize = flagProgressTexture_.getSize();
     fill.setTextureRect(sf::IntRect({0, 0}, {static_cast<int>(fillSize.x * progress), static_cast<int>(fillSize.y)}));
@@ -706,6 +799,9 @@ void ArcadeGameScreen::drawPlant(sf::RenderWindow& window, const Plant& plant) c
     const sf::Texture* texture = animatedFrame(*frames, elapsed_ + plant.row * 0.13F, 9.0F);
     if (texture == nullptr) return;
     sf::Sprite sprite(*texture);
+    if (plant.type == VasePlant::Squash && !plant.triggered) {
+        sprite.setTextureRect(sf::IntRect({10, 135}, {80, 91}));
+    }
     fitSprite(sprite, 70.0F, plant.type == VasePlant::Squash ? 92.0F : 78.0F);
     const sf::FloatRect bounds = sprite.getGlobalBounds();
     sprite.setPosition({cellX(plant.column) + (cellWidth - bounds.size.x) * 0.5F,
@@ -716,31 +812,90 @@ void ArcadeGameScreen::drawPlant(sf::RenderWindow& window, const Plant& plant) c
 
 void ArcadeGameScreen::drawZombie(sf::RenderWindow& window, const Zombie& zombie) const {
     const std::vector<sf::Texture>* frames = &normalZombieFrames_;
-    if (zombie.type == VaseZombie::Buckethead) frames = &bucketZombieFrames_;
+    const float coneArmorRatio = zombie.type == VaseZombie::Conehead
+        ? std::clamp((zombie.health - 100.0F) / 80.0F, 0.0F, 1.0F)
+        : 0.0F;
+    const float bucketArmorRatio = zombie.type == VaseZombie::Buckethead
+        ? std::clamp((zombie.health - 100.0F) / 200.0F, 0.0F, 1.0F)
+        : 0.0F;
+    if (zombie.type == VaseZombie::Conehead) {
+        frames = coneArmorRatio > 0.80F ? &coneZombieFrames_ : &normalZombieFrames_;
+    }
+    else if (zombie.type == VaseZombie::Buckethead) {
+        frames = bucketArmorRatio <= 0.80F ? &normalZombieFrames_ : &bucketZombieFrames_;
+    } else if (zombie.type == VaseZombie::Flag) frames = &flagZombieFrames_;
+    else if (zombie.type == VaseZombie::Newspaper) frames = &newspaperZombieFrames_;
     else if (zombie.type == VaseZombie::Jackbox) frames = &jackboxFrames_;
+    const bool bodyCriticallyDamaged = zombie.health <= 50.0F &&
+        zombie.type != VaseZombie::Jackbox && zombie.type != VaseZombie::Newspaper;
+    if (bodyCriticallyDamaged && !normalDamagedFrames_.empty()) {
+        frames = &normalDamagedFrames_;
+    }
     if (zombie.attacking) {
-        if (zombie.type == VaseZombie::Normal && !normalAttackFrames_.empty()) {
+        if (bodyCriticallyDamaged && !normalDamagedAttackFrames_.empty()) {
+            frames = &normalDamagedAttackFrames_;
+        } else if (zombie.type == VaseZombie::Normal && !normalAttackFrames_.empty()) {
             frames = &normalAttackFrames_;
+        } else if (zombie.type == VaseZombie::Conehead && !coneAttackFrames_.empty()) {
+            frames = coneArmorRatio > 0.80F ? &coneAttackFrames_ : &normalAttackFrames_;
         } else if (zombie.type == VaseZombie::Buckethead && !bucketAttackFrames_.empty()) {
-            frames = &bucketAttackFrames_;
+            frames = bucketArmorRatio <= 0.80F ? &normalAttackFrames_ : &bucketAttackFrames_;
+        } else if (zombie.type == VaseZombie::Flag && !flagAttackFrames_.empty()) {
+            frames = &flagAttackFrames_;
+        } else if (zombie.type == VaseZombie::Newspaper && !newspaperAttackFrames_.empty()) {
+            frames = &newspaperAttackFrames_;
         } else if (zombie.type == VaseZombie::Jackbox && !jackboxAttackFrames_.empty()) {
             frames = &jackboxAttackFrames_;
         }
     }
     const sf::Texture* texture = animatedFrame(*frames, zombie.age + zombie.row * 0.17F, 11.0F);
     if (texture == nullptr) return;
+    sf::CircleShape shadow(30.0F);
+    shadow.setScale({1.0F, 0.27F});
+    shadow.setFillColor({18, 28, 16, 85});
+    shadow.setPosition({zombie.x - 30.0F, laneY(zombie.row) + 36.0F});
+    window.draw(shadow);
     sf::Sprite sprite(*texture);
-    const float height = zombie.type == VaseZombie::Jackbox ? 138.0F : 145.0F;
+    const float height = zombie.type == VaseZombie::Jackbox ? 128.0F : 126.0F;
     placeBottomCenteredAtHeight(sprite, zombie.x, laneY(zombie.row) + 47.0F, height);
-    if (zombie.damageFlash > 0.0F) sprite.setColor({255, 255, 210});
+    if (zombie.slowRemaining > 0.0F) {
+        sprite.setColor({125, 190, 255});
+    } else if (zombie.damageFlash > 0.0F) {
+        sprite.setColor({255, 255, 210});
+    }
     window.draw(sprite);
+    if (zombie.type == VaseZombie::Conehead && coneArmorRatio > 0.0F && coneArmorRatio <= 0.80F) {
+        const std::size_t damageStage = coneArmorRatio <= 0.40F ? 2U : 1U;
+        if (coneArmorLoaded_[damageStage]) {
+            sf::Sprite cone(coneArmorTextures_[damageStage]);
+            fitSprite(cone, 54.0F, 54.0F);
+            const sf::FloatRect bounds = cone.getGlobalBounds();
+            cone.setPosition({zombie.x - bounds.size.x * 0.5F - 2.0F,
+                              laneY(zombie.row) - 64.0F + std::sin(zombie.age * 11.0F) * 1.5F});
+            if (zombie.slowRemaining > 0.0F) cone.setColor({125, 190, 255});
+            window.draw(cone);
+        }
+    }
+    if (zombie.type == VaseZombie::Buckethead && bucketArmorRatio > 0.0F && bucketArmorRatio <= 0.80F) {
+        const std::size_t damageStage = bucketArmorRatio <= 0.40F ? 2U : 1U;
+        if (bucketArmorLoaded_[damageStage]) {
+            sf::Sprite bucket(bucketArmorTextures_[damageStage]);
+            fitSprite(bucket, 62.0F, 58.0F);
+            const sf::FloatRect bounds = bucket.getGlobalBounds();
+            bucket.setPosition({zombie.x - bounds.size.x * 0.5F - 3.0F,
+                                laneY(zombie.row) - 68.0F + std::sin(zombie.age * 11.0F) * 1.5F});
+            if (zombie.slowRemaining > 0.0F) bucket.setColor({125, 190, 255});
+            window.draw(bucket);
+        }
+    }
 }
 
 void ArcadeGameScreen::drawSeedPacket(
     sf::RenderWindow& window,
     const sf::Vector2f position,
     const sf::Texture& portrait,
-    const bool selected
+    const bool selected,
+    const bool cropSquashPortrait
 ) const {
     sf::RectangleShape card(seedPacketSize);
     card.setPosition(position);
@@ -755,6 +910,9 @@ void ArcadeGameScreen::drawSeedPacket(
     window.draw(portraitPanel);
 
     sf::Sprite sprite(portrait);
+    if (cropSquashPortrait) {
+        sprite.setTextureRect(sf::IntRect({10, 135}, {80, 91}));
+    }
     fitSprite(sprite, seedPacketSize.x - 9.0F, seedPacketSize.y - 11.0F);
     const sf::FloatRect bounds = sprite.getGlobalBounds();
     sprite.setPosition({
@@ -810,6 +968,9 @@ void ArcadeGameScreen::drawPlacementPreview(sf::RenderWindow& window) const {
     else if (*selectedPlant_ == VasePlant::Squash) frames = &squashFrames_;
     if (frames->empty()) return;
     sf::Sprite preview(frames->front());
+    if (*selectedPlant_ == VasePlant::Squash) {
+        preview.setTextureRect(sf::IntRect({10, 135}, {80, 91}));
+    }
     fitSprite(preview, 70.0F, *selectedPlant_ == VasePlant::Squash ? 92.0F : 78.0F);
     preview.setColor({180, 255, 180, 165});
     const sf::FloatRect bounds = preview.getGlobalBounds();

@@ -19,6 +19,19 @@ void Plant::updateActionAnimation(const float deltaSeconds) {
     actionAnimationRemaining_ = std::max(0.0F, actionAnimationRemaining_ - deltaSeconds);
 }
 
+PlantState Plant::captureState() const {
+    return {type_, position_, health(), actionAnimationRemaining_, logicTimer()};
+}
+
+void Plant::restoreState(const PlantState& state) {
+    if (state.type != type_ || !(state.position == position_)) {
+        return;
+    }
+    restoreHealth(state.health);
+    actionAnimationRemaining_ = std::max(0.0F, state.actionAnimationRemaining);
+    restoreLogicTimer(std::max(0.0F, state.logicTimer));
+}
+
 Sunflower::Sunflower(const GridPosition position)
     : Plant(PlantType::Sunflower, position, maximumHealth) {}
 

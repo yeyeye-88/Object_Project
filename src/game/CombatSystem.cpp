@@ -93,6 +93,65 @@ std::vector<ProjectileImpactEvent> CombatSystem::takeProjectileImpactEvents() {
     return events;
 }
 
+CombatSystemState CombatSystem::captureState() const {
+    CombatSystemState state;
+    state.projectiles = projectiles_;
+    state.delayedAreaDamages = delayedAreaDamages_;
+    state.mowers = mowers_;
+    state.nextProjectileId = nextProjectileId_;
+    state.nextAreaDamageId = nextAreaDamageId_;
+    state.breached = breached_;
+    state.zombies.reserve(zombies_.size());
+    for (const auto& zombie : zombies_) {
+        state.zombies.push_back(zombie->captureState());
+    }
+    return state;
+}
+
+bool CombatSystem::restoreState(const CombatSystemState& state) {
+    if (state.nextProjectileId == 0 || state.nextAreaDamageId == 0) {
+        return false;
+    }
+    for (const Projectile& projectile : state.projectiles) {
+        if (projectile.id == 0 || projectile.row < 0 || projectile.row >= BoardGeometry::rows ||
+            projectile.damage <= 0) {
+            return false;
+        }
+    }
+    for (const DelayedAreaDamage& delayed : state.delayedAreaDamages) {
+        if (delayed.id == 0 || delayed.remainingSeconds <= 0.0F) {
+            return false;
+        }
+    }
+    std::vector<std::unique_ptr<Zombie>> restoredZombies;
+    for (const ZombieState& saved : state.zombies) {
+        if (saved.type == ZombieType::Count || saved.row < 0 || saved.row >= BoardGeometry::rows) {
+            return false;
+        }
+        auto zombie = createZombie(saved.type, saved.row, saved.x);
+        if (!zombie || !zombie->restoreState(saved)) {
+            return false;
+        }
+        restoredZombies.push_back(std::move(zombie));
+    }
+    for (std::size_t index = 0; index < state.mowers.size(); ++index) {
+        if (state.mowers[index].row != static_cast<int>(index)) {
+            return false;
+        }
+    }
+    zombies_ = std::move(restoredZombies);
+    projectiles_ = state.projectiles;
+    delayedAreaDamages_ = state.delayedAreaDamages;
+    mowers_ = state.mowers;
+    nextProjectileId_ = state.nextProjectileId;
+    nextAreaDamageId_ = state.nextAreaDamageId;
+    breached_ = state.breached;
+    events_.clear();
+    explosionEvents_.clear();
+    projectileImpactEvents_.clear();
+    return true;
+}
+
 void CombatSystem::launchProjectile(
     const Projectile::Type type,
     const int row,
@@ -259,7 +318,8 @@ void CombatSystem::updatePlants(
                 plant->beginActionAnimation();
                 for (int targetRow = row - 1; targetRow <= row + 1; ++targetRow) {
                     if (targetRow >= 0 && targetRow < BoardGeometry::rows) {
-                        launchProjectile(Projectile::Type::Pea, targetRow, originX);
+                        const float headOffset = static_cast<float>(targetRow - row) * 8.0F;
+                        launchProjectile(Projectile::Type::Pea, targetRow, originX + headOffset);
                     }
                 }
                 events_.push_back(CombatEvent::ProjectileFired);

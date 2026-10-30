@@ -77,6 +77,16 @@ struct ProjectileImpactEvent {
     float x{};
 };
 
+struct CombatSystemState {
+    std::vector<ZombieState> zombies;
+    std::vector<Projectile> projectiles;
+    std::vector<DelayedAreaDamage> delayedAreaDamages;
+    std::array<LawnMower, BoardGeometry::rows> mowers{};
+    std::uint64_t nextProjectileId{1};
+    std::uint64_t nextAreaDamageId{1};
+    bool breached{};
+};
+
 class CombatSystem {
 public:
     static constexpr float zombieWidth = 46.0F;
@@ -123,6 +133,8 @@ public:
     std::vector<CombatEvent> takeEvents();
     std::vector<ExplosionEvent> takeExplosionEvents();
     std::vector<ProjectileImpactEvent> takeProjectileImpactEvents();
+    CombatSystemState captureState() const;
+    bool restoreState(const CombatSystemState& state);
 
     bool breached() const { return breached_; }
     bool hasLivingZombies() const { return !zombies_.empty(); }

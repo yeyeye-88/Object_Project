@@ -55,20 +55,20 @@ int main() {
             !level.allSpawned() && !level.finalWaveStarted(),
         "endless mode starts dynamically and never reports a final wave"
     );
-    for (int step = 0; step < 40 && level.currentWave() < 2; ++step) {
+    for (int step = 0; step < 60 && level.currentWave() < 2; ++step) {
         level.update(1.0F);
     }
     passed &= check(
-        level.currentWave() >= 2 && level.totalZombieCount() >= 6,
+        level.currentWave() >= 2 && level.totalZombieCount() >= 11,
         "endless generation advances beyond the first wave"
     );
     level.reset();
-    const auto firstFive = level.update(22.0F);
+    const auto firstWave = level.update(30.0F);
     passed &= check(
-        firstFive.size() == 5 && level.currentWave() == 1,
-        "endless wave one contains five zombies"
+        firstWave.size() == 10 && level.currentWave() == 1,
+        "endless wave one starts with ten zombies"
     );
-    const auto secondWaveStart = level.update(15.0F);
+    const auto secondWaveStart = level.update(10.0F);
     passed &= check(
         secondWaveStart.size() == 1 && secondWaveStart.front().wave == 2 &&
             secondWaveStart.front().type == ZombieType::Flag,
@@ -76,14 +76,28 @@ int main() {
     );
     const auto laterWaves = level.update(240.0F);
     std::size_t waveThreeCount = 0;
+    bool waveTwoHasBuckethead = false;
+    bool laterWavesHaveSpecialZombie = false;
     for (const SpawnEvent& event : laterWaves) {
         if (event.wave == 3) {
             ++waveThreeCount;
         }
+        waveTwoHasBuckethead |= event.wave == 2 && event.type == ZombieType::Buckethead;
+        laterWavesHaveSpecialZombie |= event.wave >= 3 &&
+            (event.type == ZombieType::PoleVaulting || event.type == ZombieType::Newspaper);
     }
     passed &= check(
-        waveThreeCount == 6,
-        "endless zombie count grows after every two completed waves"
+        waveThreeCount == 18,
+        "endless zombie count grows noticeably on later waves"
+    );
+    passed &= check(
+        waveTwoHasBuckethead && laterWavesHaveSpecialZombie,
+        "endless waves introduce armored and special zombies progressively"
+    );
+    level.startEndlessAtWave(12);
+    passed &= check(
+        level.currentWave() == 12 && level.elapsedSeconds() == 0.0F,
+        "endless mode can resume from an explicit wave"
     );
     return passed ? 0 : 1;
 }

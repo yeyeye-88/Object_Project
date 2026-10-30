@@ -274,6 +274,12 @@ GameScreen::GameScreen(GameSession& session) : session_(session) {
     normalDeathAnimationFrames_ = loadNumberedFrames(
         "assets/pvz/animations/zombies/death/normal", 0, 9
     );
+    normalDamagedAnimationFrames_ = loadNumberedFrames(
+        "assets/pvz/animations/zombies/damaged/normal", 0, 17
+    );
+    normalDamagedAttackAnimationFrames_ = loadNumberedFrames(
+        "assets/pvz/animations/zombies/damaged_attack/normal", 0, 10
+    );
     poleDeathAnimationFrames_ = loadNumberedFrames(
         "assets/pvz/animations/zombies/death/pole_vaulting", 0, 8
     );
@@ -292,6 +298,22 @@ GameScreen::GameScreen(GameSession& session) : session_(session) {
     sporeHitAnimationFrames_ = loadNumberedFrames(
         "assets/pvz/animations/projectiles/spore_hit", 0, 0
     );
+    const std::array<std::string, 3> bucketArmorPaths{
+        "assets/pvz/zombies/armor/bucket_intact.png",
+        "assets/pvz/zombies/armor/bucket_damaged.png",
+        "assets/pvz/zombies/armor/bucket_critical.png",
+    };
+    for (std::size_t index = 0; index < bucketArmorPaths.size(); ++index) {
+        bucketArmorLoaded_[index] = bucketArmorTextures_[index].loadFromFile(bucketArmorPaths[index]);
+    }
+    const std::array<std::string, 3> coneArmorPaths{
+        "assets/pvz/zombies/armor/cone_intact.png",
+        "assets/pvz/zombies/armor/cone_damaged.png",
+        "assets/pvz/zombies/armor/cone_critical.png",
+    };
+    for (std::size_t index = 0; index < coneArmorPaths.size(); ++index) {
+        coneArmorLoaded_[index] = coneArmorTextures_[index].loadFromFile(coneArmorPaths[index]);
+    }
 
     const std::array<std::string, 3> threepeaterStemPaths{
         "assets/pvz/plants/threepeater_stem1.png",
@@ -707,6 +729,7 @@ void GameScreen::draw(sf::RenderWindow& window) const {
     drawToolbar(window);
     drawCards(window);
     drawFeedback(window);
+    drawShovelCursor(window);
     if (session_.isPaused()) {
         drawPauseOverlay(window);
     } else if (session_.state() == GameState::Won || session_.state() == GameState::Lost) {
@@ -760,14 +783,6 @@ void GameScreen::drawBoard(sf::RenderWindow& window) const {
                     position,
                     false,
                     plant->isPerformingAction() ? plant->actionAnimationProgress() : -1.0F
-                );
-                drawHealthBar(
-                    window,
-                    static_cast<float>(plant->health()) /
-                        static_cast<float>(plant->maxHealth()),
-                    {visualCellLeft(column) + 7.0F,
-                     BoardGeometry::cellTop(row) + BoardGeometry::cellHeight - 10.0F},
-                    visualCellWidth - 14.0F
                 );
             }
         }
@@ -895,6 +910,26 @@ void GameScreen::drawCombat(sf::RenderWindow& window) const {
         }
         const std::size_t zombieIndex = static_cast<std::size_t>(zombie->type());
         const std::vector<sf::Texture>* animation = &zombieAnimationFrames_[zombieIndex];
+        const float armorRatio = zombie->maxArmor() > 0
+            ? static_cast<float>(zombie->armor()) / static_cast<float>(zombie->maxArmor())
+            : 0.0F;
+        const bool lostHeadgear =
+            (zombie->type() == ZombieType::Conehead || zombie->type() == ZombieType::Buckethead) &&
+            zombie->armor() == 0;
+        const bool separateBucketArmor = zombie->type() == ZombieType::Buckethead &&
+                                         armorRatio > 0.0F && armorRatio <= 0.80F;
+        const bool separateConeArmor = zombie->type() == ZombieType::Conehead &&
+                                       armorRatio > 0.0F && armorRatio <= 0.80F;
+        if (lostHeadgear || separateBucketArmor || separateConeArmor) {
+            animation = &zombieAnimationFrames_[static_cast<std::size_t>(ZombieType::Normal)];
+        }
+        const bool bodyCriticallyDamaged = zombie->armor() == 0 &&
+            zombie->health() * 2 <= zombie->maxHealth() &&
+            (zombie->type() == ZombieType::Normal || zombie->type() == ZombieType::Conehead ||
+             zombie->type() == ZombieType::Buckethead || zombie->type() == ZombieType::Flag);
+        if (bodyCriticallyDamaged && !normalDamagedAnimationFrames_.empty()) {
+            animation = &normalDamagedAnimationFrames_;
+        }
         float oneShotProgress = -1.0F;
         if (zombie->type() == ZombieType::PoleVaulting && zombie->isVaulting() &&
             !poleJumpAnimationFrames_.empty()) {
@@ -909,7 +944,11 @@ void GameScreen::drawCombat(sf::RenderWindow& window) const {
             animation = &newspaperEnragedAttackAnimationFrames_;
         } else if (zombie->isAttacking() &&
                    !zombieAttackAnimationFrames_[zombieIndex].empty()) {
-            animation = &zombieAttackAnimationFrames_[zombieIndex];
+            animation = bodyCriticallyDamaged && !normalDamagedAttackAnimationFrames_.empty()
+                ? &normalDamagedAttackAnimationFrames_
+                : (lostHeadgear || separateBucketArmor || separateConeArmor)
+                ? &zombieAttackAnimationFrames_[static_cast<std::size_t>(ZombieType::Normal)]
+                : &zombieAttackAnimationFrames_[zombieIndex];
         } else if (zombie->type() == ZombieType::PoleVaulting && !zombie->canVault() &&
                    !poleWalkingAnimationFrames_.empty()) {
             animation = &poleWalkingAnimationFrames_;
@@ -942,9 +981,39 @@ void GameScreen::drawCombat(sf::RenderWindow& window) const {
                 poleVaulting ? 182.0F : 132.0F
             );
             if (zombie->isSlowed()) {
-                sprite.setColor({180, 225, 255});
+                sprite.setColor({125, 190, 255});
             }
             window.draw(sprite);
+            if (separateConeArmor) {
+                const std::size_t damageStage = armorRatio <= 0.40F ? 2U : 1U;
+                if (coneArmorLoaded_[damageStage]) {
+                    sf::Sprite cone(coneArmorTextures_[damageStage]);
+                    fitSprite(cone, {54.0F, 54.0F});
+                    const sf::FloatRect coneBounds = cone.getGlobalBounds();
+                    const float bob = std::sin(animationTime_ * 11.0F + zombie->x() * 0.015F) * 1.5F;
+                    cone.setPosition({
+                        zombieX + collisionWidth * 0.5F - coneBounds.size.x * 0.5F - 2.0F,
+                        BoardGeometry::cellTop(zombie->row()) - 17.0F + visualYOffset + bob,
+                    });
+                    if (zombie->isSlowed()) cone.setColor({125, 190, 255});
+                    window.draw(cone);
+                }
+            }
+            if (separateBucketArmor) {
+                const std::size_t damageStage = armorRatio <= 0.40F ? 2U : 1U;
+                if (bucketArmorLoaded_[damageStage]) {
+                    sf::Sprite bucket(bucketArmorTextures_[damageStage]);
+                    fitSprite(bucket, {62.0F, 58.0F});
+                    const sf::FloatRect bucketBounds = bucket.getGlobalBounds();
+                    const float bob = std::sin(animationTime_ * 11.0F + zombie->x() * 0.015F) * 1.5F;
+                    bucket.setPosition({
+                        zombieX + collisionWidth * 0.5F - bucketBounds.size.x * 0.5F - 3.0F,
+                        BoardGeometry::cellTop(zombie->row()) - 15.0F + visualYOffset + bob,
+                    });
+                    if (zombie->isSlowed()) bucket.setColor({125, 190, 255});
+                    window.draw(bucket);
+                }
+            }
         } else {
             body.setFillColor(bodyColor);
             body.setOutlineColor({48, 61, 42});
@@ -981,22 +1050,6 @@ void GameScreen::drawCombat(sf::RenderWindow& window) const {
             paper.setOutlineThickness(2.0F);
             window.draw(paper);
         }
-        drawHealthBar(
-            window,
-            static_cast<float>(zombie->health()) /
-                static_cast<float>(zombie->maxHealth()),
-            {zombieX - 9.0F, top - 14.0F},
-            60.0F
-        );
-        if (zombie->maxArmor() > 0) {
-            drawHealthBar(
-                window,
-                static_cast<float>(zombie->armor()) /
-                    static_cast<float>(zombie->maxArmor()),
-                {zombieX - 9.0F, top - 7.0F},
-                60.0F
-            );
-        }
     }
 
     for (const ZombieDeathEffect& effect : zombieDeathEffects_) {
@@ -1025,7 +1078,7 @@ void GameScreen::drawCombat(sf::RenderWindow& window) const {
             poleVaulting ? 182.0F : 132.0F
         );
         if (effect.slowed) {
-            sprite.setColor({180, 225, 255});
+            sprite.setColor({125, 190, 255});
         }
         window.draw(sprite);
     }
@@ -1390,18 +1443,35 @@ void GameScreen::drawToolbar(sf::RenderWindow& window) const {
     wavePanel.setOutlineColor({229, 198, 113});
     wavePanel.setOutlineThickness(2.0F);
     window.draw(wavePanel);
-    drawNumber(window, session_.level().currentWave(), {696.0F, 28.0F});
+    const int currentWave = session_.level().currentWave();
+    const int displayedTotal = session_.level().isEndless()
+        ? session_.highestEndlessWave()
+        : session_.level().waveCount();
+    const auto digitCount = [](const int value) {
+        return std::to_string(std::max(0, value)).size();
+    };
+    const std::size_t widestNumber = std::max(digitCount(currentWave), digitCount(displayedTotal));
+    const float waveNumberScale = widestNumber >= 3U ? 0.55F : widestNumber == 2U ? 0.75F : 1.0F;
+    const auto numberWidth = [waveNumberScale](const int value) {
+        const float digits = static_cast<float>(std::to_string(std::max(0, value)).size());
+        return (digits * 17.0F - 3.0F) * waveNumberScale;
+    };
+    drawNumber(
+        window,
+        currentWave,
+        {701.0F - numberWidth(currentWave) * 0.5F, 28.0F},
+        waveNumberScale
+    );
     sf::RectangleShape separator({12.0F, 2.0F});
-    separator.setPosition({720.0F, 39.0F});
+    separator.setPosition({722.0F, 39.0F});
     separator.setRotation(sf::degrees(-55.0F));
     separator.setFillColor({255, 236, 125});
     window.draw(separator);
     drawNumber(
         window,
-        session_.level().isEndless()
-            ? session_.highestEndlessWave()
-            : session_.level().waveCount(),
-        {742.0F, 28.0F}
+        displayedTotal,
+        {747.0F - numberWidth(displayedTotal) * 0.5F, 28.0F},
+        waveNumberScale
     );
 
     drawButton(window, pauseBounds, {58, 80, 43, 225});
@@ -1420,6 +1490,31 @@ void GameScreen::drawToolbar(sf::RenderWindow& window) const {
             window.draw(bar);
         }
     }
+}
+
+void GameScreen::drawShovelCursor(sf::RenderWindow& window) const {
+    if (!shovelSelected_ || !shovelLoaded_ || session_.isPaused() ||
+        session_.state() != GameState::Running) {
+        return;
+    }
+
+    const sf::Vector2f pointer = window.mapPixelToCoords(sf::Mouse::getPosition(window));
+
+    sf::CircleShape marker(23.0F);
+    marker.setOrigin({23.0F, 23.0F});
+    marker.setPosition(pointer);
+    marker.setFillColor({255, 238, 115, 48});
+    marker.setOutlineColor({255, 245, 170, 180});
+    marker.setOutlineThickness(2.0F);
+    window.draw(marker);
+
+    sf::Sprite shovel(shovelTexture_);
+    fitSprite(shovel, {48.0F, 48.0F});
+    const sf::FloatRect bounds = shovel.getGlobalBounds();
+    shovel.setPosition({pointer.x - bounds.size.x * 0.32F,
+                        pointer.y - bounds.size.y * 0.78F});
+    shovel.setColor({255, 250, 205, 235});
+    window.draw(shovel);
 }
 
 void GameScreen::drawPauseOverlay(sf::RenderWindow& window) const {
@@ -1510,27 +1605,11 @@ void GameScreen::drawResultOverlay(sf::RenderWindow& window) const {
     }
 }
 
-void GameScreen::drawHealthBar(
-    sf::RenderWindow& window,
-    const float ratio,
-    const sf::Vector2f position,
-    const float width
-) const {
-    sf::RectangleShape background({width, 5.0F});
-    background.setPosition(position);
-    background.setFillColor({55, 25, 22, 210});
-    window.draw(background);
-
-    sf::RectangleShape health({width * std::clamp(ratio, 0.0F, 1.0F), 5.0F});
-    health.setPosition(position);
-    health.setFillColor(ratio > 0.35F ? sf::Color(80, 210, 70) : sf::Color(238, 178, 58));
-    window.draw(health);
-}
-
 void GameScreen::drawNumber(
     sf::RenderWindow& window,
     const int value,
-    const sf::Vector2f position
+    const sf::Vector2f position,
+    const float scale
 ) const {
     static constexpr std::array<std::array<bool, 7>, 10> digits{{
         {{true, true, true, true, true, true, false}},
@@ -1550,13 +1629,13 @@ void GameScreen::drawNumber(
     for (const char character : text) {
         const auto& segments = digits[static_cast<std::size_t>(character - '0')];
         const std::array<sf::FloatRect, 7> shapes{{
-            sf::FloatRect({position.x + offset + 3.0F, position.y}, {9.0F, 2.0F}),
-            sf::FloatRect({position.x + offset + 12.0F, position.y + 2.0F}, {2.0F, 8.0F}),
-            sf::FloatRect({position.x + offset + 12.0F, position.y + 12.0F}, {2.0F, 8.0F}),
-            sf::FloatRect({position.x + offset + 3.0F, position.y + 20.0F}, {9.0F, 2.0F}),
-            sf::FloatRect({position.x + offset + 1.0F, position.y + 12.0F}, {2.0F, 8.0F}),
-            sf::FloatRect({position.x + offset + 1.0F, position.y + 2.0F}, {2.0F, 8.0F}),
-            sf::FloatRect({position.x + offset + 3.0F, position.y + 10.0F}, {9.0F, 2.0F}),
+            sf::FloatRect({position.x + offset + 3.0F * scale, position.y}, {9.0F * scale, 2.0F * scale}),
+            sf::FloatRect({position.x + offset + 12.0F * scale, position.y + 2.0F * scale}, {2.0F * scale, 8.0F * scale}),
+            sf::FloatRect({position.x + offset + 12.0F * scale, position.y + 12.0F * scale}, {2.0F * scale, 8.0F * scale}),
+            sf::FloatRect({position.x + offset + 3.0F * scale, position.y + 20.0F * scale}, {9.0F * scale, 2.0F * scale}),
+            sf::FloatRect({position.x + offset + 1.0F * scale, position.y + 12.0F * scale}, {2.0F * scale, 8.0F * scale}),
+            sf::FloatRect({position.x + offset + 1.0F * scale, position.y + 2.0F * scale}, {2.0F * scale, 8.0F * scale}),
+            sf::FloatRect({position.x + offset + 3.0F * scale, position.y + 10.0F * scale}, {9.0F * scale, 2.0F * scale}),
         }};
         for (std::size_t index = 0; index < segments.size(); ++index) {
             if (!segments[index]) {
@@ -1567,7 +1646,7 @@ void GameScreen::drawNumber(
             segment.setFillColor({255, 236, 125});
             window.draw(segment);
         }
-        offset += 17.0F;
+        offset += 17.0F * scale;
     }
 }
 

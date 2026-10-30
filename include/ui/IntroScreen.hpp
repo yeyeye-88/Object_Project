@@ -16,9 +16,11 @@ private:
     sf::Font font_;
     sf::Texture backgroundTexture_;
     sf::Texture logoTexture_;
+    sf::Texture startButtonTexture_;
     bool fontLoaded_{};
     bool backgroundLoaded_{};
     bool logoLoaded_{};
+    bool startButtonLoaded_{};
     float time_{};
 };
 

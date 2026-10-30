@@ -8,6 +8,16 @@
 
 namespace object_project {
 
+struct GameSessionState {
+    int sun{};
+    int highestEndlessWave{1};
+    std::vector<PlantState> plants;
+    std::array<float, plantTypeCount> cardCooldowns{};
+    SunSystemState suns;
+    CombatSystemState combat;
+    LevelSystemState level;
+};
+
 enum class GameState {
     Running,
     Paused,
@@ -30,7 +40,7 @@ class GameSession {
 public:
     static constexpr int initialSun = 150;
 
-    explicit GameSession(LevelId levelId = LevelId::Garden);
+    explicit GameSession(LevelId levelId = LevelId::Garden, bool persistentEndlessProgress = false);
 
     void update(float deltaSeconds);
     PlacementResult placementStatus(PlantType type, GridPosition position) const;
@@ -41,6 +51,12 @@ public:
     void togglePause();
     void startLevel(LevelId levelId);
     void restart();
+    void startEndlessFresh();
+    bool resumeEndless();
+    void saveEndlessNow();
+    bool hasEndlessResume() const { return hasEndlessResume_; }
+    GameSessionState captureState() const;
+    bool restoreState(const GameSessionState& state);
 
     GameState state() const { return state_; }
     bool isPaused() const { return state_ == GameState::Paused; }
@@ -65,6 +81,9 @@ private:
     CombatSystem combat_;
     LevelSystem level_;
     int highestEndlessWave_{1};
+    bool persistentEndlessProgress_{};
+    bool hasEndlessResume_{};
+    float endlessSaveTimer_{};
 };
 
 }  // namespace object_project

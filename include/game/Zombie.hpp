@@ -17,6 +17,21 @@ enum class ZombieType {
     Count,
 };
 
+struct ZombieState {
+    ZombieType type{ZombieType::Normal};
+    int row{};
+    float x{};
+    int health{};
+    int armor{};
+    float attackTimer{};
+    float slowMultiplier{1.0F};
+    float slowRemainingSeconds{};
+    bool attacking{};
+    bool specialFlag{};
+    float specialA{};
+    float specialB{};
+};
+
 constexpr std::size_t zombieTypeCount = static_cast<std::size_t>(ZombieType::Count);
 
 class Zombie : public Entity {
@@ -53,9 +68,13 @@ public:
     void move(float deltaSeconds);
     void setX(float x) { x_ = x; }
     bool updateAttack(float deltaSeconds, bool blocked);
+    ZombieState captureState() const;
+    bool restoreState(const ZombieState& state);
 
 private:
     virtual void onArmorBroken() {}
+    virtual void captureSpecialState(ZombieState&) const {}
+    virtual bool restoreSpecialState(const ZombieState&) { return true; }
 
     int row_{};
     float x_{};
@@ -154,6 +173,8 @@ public:
     void updateSpecialState(float deltaSeconds) override;
 
 private:
+    void captureSpecialState(ZombieState& state) const override;
+    bool restoreSpecialState(const ZombieState& state) override;
     static constexpr float vaultAnimationSeconds = 0.9F;
     bool vaultAvailable_{true};
     float vaultRemainingSeconds_{};
@@ -185,6 +206,8 @@ public:
 
 private:
     void onArmorBroken() override;
+    void captureSpecialState(ZombieState& state) const override;
+    bool restoreSpecialState(const ZombieState& state) override;
 
     static constexpr float transitionAnimationSeconds = 1.1F;
     float transitionRemainingSeconds_{};

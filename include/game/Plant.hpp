@@ -9,6 +9,14 @@
 
 namespace object_project {
 
+struct PlantState {
+    PlantType type{PlantType::Sunflower};
+    GridPosition position{};
+    int health{};
+    float actionAnimationRemaining{};
+    float logicTimer{};
+};
+
 struct PlantUpdateContext {
     bool enemyAhead{};
     bool enemyNearby{};
@@ -37,11 +45,17 @@ public:
     float actionAnimationProgress() const;
     void beginActionAnimation();
     void updateActionAnimation(float deltaSeconds);
+    PlantState captureState() const;
+    void restoreState(const PlantState& state);
     virtual bool blocksVaulting() const { return false; }
     virtual std::optional<PlantAction> update(
         float deltaSeconds,
         const PlantUpdateContext& context
     ) = 0;
+
+protected:
+    virtual float logicTimer() const { return 0.0F; }
+    virtual void restoreLogicTimer(float) {}
 
 private:
     static constexpr float actionAnimationSeconds = 0.45F;
@@ -59,6 +73,8 @@ public:
     std::optional<PlantAction> update(float deltaSeconds, const PlantUpdateContext& context) override;
 
 private:
+    float logicTimer() const override { return productionTimer_; }
+    void restoreLogicTimer(float value) override { productionTimer_ = value; }
     float productionTimer_{};
 };
 
@@ -71,6 +87,8 @@ public:
     std::optional<PlantAction> update(float deltaSeconds, const PlantUpdateContext& context) override;
 
 private:
+    float logicTimer() const override { return attackTimer_; }
+    void restoreLogicTimer(float value) override { attackTimer_ = value; }
     float attackTimer_{};
 };
 
@@ -91,18 +109,22 @@ public:
     std::optional<PlantAction> update(float deltaSeconds, const PlantUpdateContext& context) override;
 
 private:
+    float logicTimer() const override { return attackTimer_; }
+    void restoreLogicTimer(float value) override { attackTimer_ = value; }
     float attackTimer_{};
 };
 
 class Threepeater final : public Plant {
 public:
     static constexpr int maximumHealth = 100;
-    static constexpr float attackIntervalSeconds = 1.8F;
+    static constexpr float attackIntervalSeconds = 1.5F;
 
     explicit Threepeater(GridPosition position);
     std::optional<PlantAction> update(float deltaSeconds, const PlantUpdateContext& context) override;
 
 private:
+    float logicTimer() const override { return attackTimer_; }
+    void restoreLogicTimer(float value) override { attackTimer_ = value; }
     float attackTimer_{};
 };
 
@@ -115,6 +137,8 @@ public:
     std::optional<PlantAction> update(float deltaSeconds, const PlantUpdateContext& context) override;
 
 private:
+    float logicTimer() const override { return attackTimer_; }
+    void restoreLogicTimer(float value) override { attackTimer_ = value; }
     float attackTimer_{};
 };
 
@@ -137,6 +161,8 @@ public:
     std::optional<PlantAction> update(float deltaSeconds, const PlantUpdateContext& context) override;
 
 private:
+    float logicTimer() const override { return armingTimer_; }
+    void restoreLogicTimer(float value) override { armingTimer_ = value; }
     float armingTimer_{};
 };
 
@@ -149,6 +175,8 @@ public:
     std::optional<PlantAction> update(float deltaSeconds, const PlantUpdateContext& context) override;
 
 private:
+    float logicTimer() const override { return fuseTimer_; }
+    void restoreLogicTimer(float value) override { fuseTimer_ = value; }
     float fuseTimer_{};
 };
 
@@ -171,6 +199,8 @@ public:
     std::optional<PlantAction> update(float deltaSeconds, const PlantUpdateContext& context) override;
 
 private:
+    float logicTimer() const override { return attackTimer_; }
+    void restoreLogicTimer(float value) override { attackTimer_ = value; }
     float attackTimer_{};
 };
 

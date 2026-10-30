@@ -13,6 +13,11 @@ M1 开发版本临时使用了本机只读课程参考项目中的视觉素材�
 
 ## 《植物大战僵尸》参考素材
 
+开始页面使用本地素材 `D:\Object\titlescreen.jpg`、`D:\Object\PvZ_Logo.png`，
+以及 `D:\Object\Plants-vs-zombies\663\images\interface\LoadBar.png`。
+对应项目文件为 `assets/pvz/ui/screens/title_screen.jpg`、`title_logo.png` 和
+`start_grass_button.png`；按钮自带中文，不再重复绘制文字。
+
 M4 本地课程版本使用了 `D:\Object\Plants-vs-zombies\663` 中的角色动画、界面图片、
 背景音乐和游戏音效。音频在项目中保存为 OGG，覆盖白天草坪音乐、按钮、阳光、种植、
 发射、命中、爆炸、割草机、撑杆跳跃、报纸破损、啃食、火豌豆、胜利与失败反馈。
@@ -23,6 +28,8 @@ M4 本地课程版本使用了 `D:\Object\Plants-vs-zombies\663` 中的角色动
 坚果保龄球的传送带、红线、进度条，以及砸罐子的锤子、罐子碎片和碎罐音效，补充取自
 公开的原版资源提取仓库 `https://github.com/FregD156/PvZ_Assets`。该仓库说明资源来自
 原版 macOS 游戏包；这些文件同样只用于课程学习与本地演示，不能据此视为开放许可素材。
+铁桶僵尸的完整、一级破损和二级破损部件同样取自该仓库的
+`reanim/Zombie_bucket1.png`、`Zombie_bucket2.png` 和 `Zombie_bucket3.png`。
 
 ## Tuffy 字体
 

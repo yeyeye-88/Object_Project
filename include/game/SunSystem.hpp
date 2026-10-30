@@ -4,6 +4,7 @@
 
 #include <cstdint>
 #include <random>
+#include <string>
 #include <vector>
 
 namespace object_project {
@@ -14,6 +15,13 @@ struct SunToken {
     float y{};
     float targetY{};
     float ageSeconds{};
+};
+
+struct SunSystemState {
+    std::vector<SunToken> tokens;
+    float spawnTimer{};
+    std::uint64_t nextId{1};
+    std::string randomState;
 };
 
 class SunSystem {
@@ -30,6 +38,8 @@ public:
     bool collectAt(float x, float y);
     void spawnFromPlant(GridPosition position);
     void reset();
+    SunSystemState captureState() const;
+    bool restoreState(const SunSystemState& state);
 
     const std::vector<SunToken>& tokens() const { return tokens_; }
 

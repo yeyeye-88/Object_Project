@@ -85,4 +85,27 @@ void Board::reset() {
     }
 }
 
+std::vector<PlantState> Board::captureState() const {
+    std::vector<PlantState> state;
+    for (const auto& plant : cells_) {
+        if (plant) {
+            state.push_back(plant->captureState());
+        }
+    }
+    return state;
+}
+
+bool Board::restoreState(const std::vector<PlantState>& state) {
+    reset();
+    for (const PlantState& saved : state) {
+        if (!BoardGeometry::contains(saved.position) || isOccupied(saved.position) ||
+            saved.type == PlantType::Count || !place(saved.position, saved.type)) {
+            reset();
+            return false;
+        }
+        plantAt(saved.position)->restoreState(saved);
+    }
+    return true;
+}
+
 }  // namespace object_project

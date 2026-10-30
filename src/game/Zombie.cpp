@@ -69,6 +69,32 @@ bool Zombie::updateAttack(const float deltaSeconds, const bool blocked) {
     return true;
 }
 
+ZombieState Zombie::captureState() const {
+    ZombieState state{
+        type(), row_, x_, health(), armor_, attackTimer_, slowMultiplier_,
+        slowRemainingSeconds_, attacking_, false, 0.0F, 0.0F,
+    };
+    captureSpecialState(state);
+    return state;
+}
+
+bool Zombie::restoreState(const ZombieState& state) {
+    if (state.type != type() || state.row != row_ || state.health < 0 ||
+        state.armor < 0 || state.armor > maxArmor_ || state.attackTimer < 0.0F ||
+        state.slowMultiplier <= 0.0F || state.slowMultiplier > 1.0F ||
+        state.slowRemainingSeconds < 0.0F) {
+        return false;
+    }
+    x_ = state.x;
+    restoreHealth(state.health);
+    armor_ = state.armor;
+    attackTimer_ = state.attackTimer;
+    slowMultiplier_ = state.slowMultiplier;
+    slowRemainingSeconds_ = state.slowRemainingSeconds;
+    attacking_ = state.attacking;
+    return restoreSpecialState(state);
+}
+
 NormalZombie::NormalZombie(const int row, const float x)
     : Zombie(row, x, maximumHealth, 0) {}
 
@@ -112,6 +138,22 @@ void PoleVaultingZombie::updateSpecialState(const float deltaSeconds) {
     vaultRemainingSeconds_ = std::max(0.0F, vaultRemainingSeconds_ - deltaSeconds);
 }
 
+void PoleVaultingZombie::captureSpecialState(ZombieState& state) const {
+    state.specialFlag = vaultAvailable_;
+    state.specialA = vaultRemainingSeconds_;
+    state.specialB = vaultVisualStartX_;
+}
+
+bool PoleVaultingZombie::restoreSpecialState(const ZombieState& state) {
+    if (state.specialA < 0.0F || state.specialA > vaultAnimationSeconds) {
+        return false;
+    }
+    vaultAvailable_ = state.specialFlag;
+    vaultRemainingSeconds_ = state.specialA;
+    vaultVisualStartX_ = state.specialB;
+    return true;
+}
+
 NewspaperZombie::NewspaperZombie(const int row, const float x)
     : Zombie(row, x, maximumHealth, newspaperArmor) {}
 
@@ -125,6 +167,18 @@ float NewspaperZombie::transformationProgress() const {
 
 void NewspaperZombie::updateSpecialState(const float deltaSeconds) {
     transitionRemainingSeconds_ = std::max(0.0F, transitionRemainingSeconds_ - deltaSeconds);
+}
+
+void NewspaperZombie::captureSpecialState(ZombieState& state) const {
+    state.specialA = transitionRemainingSeconds_;
+}
+
+bool NewspaperZombie::restoreSpecialState(const ZombieState& state) {
+    if (state.specialA < 0.0F || state.specialA > transitionAnimationSeconds) {
+        return false;
+    }
+    transitionRemainingSeconds_ = state.specialA;
+    return true;
 }
 
 std::unique_ptr<Zombie> createZombie(

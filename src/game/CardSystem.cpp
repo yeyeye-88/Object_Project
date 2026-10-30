@@ -53,4 +53,14 @@ void CardSystem::reset() {
     remaining_.fill(0.0F);
 }
 
+bool CardSystem::restoreState(const std::array<float, plantTypeCount>& state) {
+    for (std::size_t index = 0; index < state.size(); ++index) {
+        if (state[index] < 0.0F || state[index] > definitions_[index].cooldownSeconds) {
+            return false;
+        }
+    }
+    remaining_ = state;
+    return true;
+}
+
 }  // namespace object_project

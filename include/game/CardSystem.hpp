@@ -22,6 +22,8 @@ public:
     void startCooldown(PlantType type);
     void update(float deltaSeconds);
     void reset();
+    const std::array<float, plantTypeCount>& captureState() const { return remaining_; }
+    bool restoreState(const std::array<float, plantTypeCount>& state);
 
 private:
     std::array<CardDefinition, plantTypeCount> definitions_{};

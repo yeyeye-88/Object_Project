@@ -1,6 +1,7 @@
 # CMake build output
 /build/
 /out/
+/save/
 
 # Compilers and debuggers
 *.exe
@@ -14,4 +15,3 @@
 .idea/
 .DS_Store
 Thumbs.db
-

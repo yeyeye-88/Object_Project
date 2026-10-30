@@ -74,7 +74,7 @@ int main() {
     object_project::AudioSystem audio;
     audio.applySettings(settings);
 
-    object_project::GameSession session;
+    object_project::GameSession session(object_project::LevelId::Garden, true);
     object_project::GameScreen screen(session);
     object_project::IntroScreen intro;
     object_project::AlmanacScreen almanac;
@@ -91,8 +91,13 @@ int main() {
     sf::Clock frameClock;
 
     while (window.isOpen()) {
+        levelSelect.setEndlessProgress(
+            session.highestEndlessWave(),
+            session.hasEndlessResume()
+        );
         while (const auto event = window.pollEvent()) {
             if (event->is<sf::Event::Closed>()) {
+                session.saveEndlessNow();
                 window.close();
             } else if (activeScreen == AppScreen::Intro) {
                 if (intro.handleEvent(*event)) {
@@ -152,13 +157,20 @@ int main() {
                     audio.play(object_project::SoundCue::Click);
                     pendingLevel = action.level;
                     if (pendingLevel == object_project::LevelId::EndlessDefense) {
-                        session.startLevel(pendingLevel);
+                        session.startEndlessFresh();
                         screen.resetInteraction();
                         activeScreen = AppScreen::Game;
                     } else {
                         zombieNote.setLevel(pendingLevel);
                         activeScreen = AppScreen::ZombieNote;
                     }
+                } else if (action.type == object_project::LevelSelectActionType::ResumeEndless) {
+                    audio.play(object_project::SoundCue::Click);
+                    if (!session.resumeEndless()) {
+                        session.startEndlessFresh();
+                    }
+                    screen.resetInteraction();
+                    activeScreen = AppScreen::Game;
                 } else if (action.type == object_project::LevelSelectActionType::Back) {
                     audio.play(object_project::SoundCue::Click);
                     activeScreen = AppScreen::MainMenu;
@@ -198,6 +210,7 @@ int main() {
             almanacReturnScreen = AppScreen::Game;
             activeScreen = AppScreen::Almanac;
         } else if (activeScreen == AppScreen::Game && screen.takeMenuRequest()) {
+            session.saveEndlessNow();
             activeScreen = AppScreen::LevelSelect;
         }
 

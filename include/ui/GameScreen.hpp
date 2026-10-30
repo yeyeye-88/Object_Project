@@ -88,6 +88,7 @@ private:
     void drawCombat(sf::RenderWindow& window) const;
     void drawSuns(sf::RenderWindow& window) const;
     void drawToolbar(sf::RenderWindow& window) const;
+    void drawShovelCursor(sf::RenderWindow& window) const;
     void drawPauseOverlay(sf::RenderWindow& window) const;
     void drawResultOverlay(sf::RenderWindow& window) const;
     void drawFeedback(sf::RenderWindow& window) const;
@@ -99,8 +100,12 @@ private:
         float actionProgress = -1.0F,
         sf::Color previewColor = sf::Color(255, 255, 255, 145)
     ) const;
-    void drawHealthBar(sf::RenderWindow& window, float ratio, sf::Vector2f position, float width) const;
-    void drawNumber(sf::RenderWindow& window, int value, sf::Vector2f position) const;
+    void drawNumber(
+        sf::RenderWindow& window,
+        int value,
+        sf::Vector2f position,
+        float scale = 1.0F
+    ) const;
 
     GameSession& session_;
     std::optional<PlantType> selectedPlant_;
@@ -124,6 +129,8 @@ private:
     std::array<sf::Texture, plantTypeCount> cardTextures_;
     std::array<sf::Texture, plantTypeCount> plantTextures_;
     std::array<sf::Texture, zombieTypeCount> zombieTextures_;
+    std::array<sf::Texture, 3> bucketArmorTextures_;
+    std::array<sf::Texture, 3> coneArmorTextures_;
     std::array<std::vector<sf::Texture>, plantTypeCount> plantAnimationFrames_;
     std::array<std::vector<sf::Texture>, zombieTypeCount> zombieAnimationFrames_;
     std::array<std::vector<sf::Texture>, zombieTypeCount> zombieAttackAnimationFrames_;
@@ -133,6 +140,8 @@ private:
     std::vector<sf::Texture> newspaperEnragedAttackAnimationFrames_;
     std::vector<sf::Texture> newspaperTransitionAnimationFrames_;
     std::vector<sf::Texture> normalDeathAnimationFrames_;
+    std::vector<sf::Texture> normalDamagedAnimationFrames_;
+    std::vector<sf::Texture> normalDamagedAttackAnimationFrames_;
     std::vector<sf::Texture> poleDeathAnimationFrames_;
     std::vector<sf::Texture> newspaperDeathAnimationFrames_;
     std::vector<sf::Texture> cherryExplosionAnimationFrames_;
@@ -161,6 +170,8 @@ private:
     std::array<bool, plantTypeCount> cardLoaded_{};
     std::array<bool, plantTypeCount> plantLoaded_{};
     std::array<bool, zombieTypeCount> zombieLoaded_{};
+    std::array<bool, 3> bucketArmorLoaded_{};
+    std::array<bool, 3> coneArmorLoaded_{};
     std::array<bool, 3> threepeaterStemLoaded_{};
     bool threepeaterHeadLoaded_{};
     bool potatoMineLoaded_{};

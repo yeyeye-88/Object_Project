@@ -1,6 +1,7 @@
 #include "game/SunSystem.hpp"
 
 #include <algorithm>
+#include <sstream>
 
 namespace object_project {
 
@@ -68,6 +69,33 @@ void SunSystem::reset() {
     tokens_.clear();
     spawnTimer_ = 0.0F;
     nextId_ = 1;
+}
+
+SunSystemState SunSystem::captureState() const {
+    std::ostringstream randomState;
+    randomState << random_;
+    return {tokens_, spawnTimer_, nextId_, randomState.str()};
+}
+
+bool SunSystem::restoreState(const SunSystemState& state) {
+    if (state.spawnTimer < 0.0F || state.nextId == 0) {
+        return false;
+    }
+    std::istringstream randomState(state.randomState);
+    std::mt19937 restoredRandom;
+    if (!(randomState >> restoredRandom)) {
+        return false;
+    }
+    for (const SunToken& token : state.tokens) {
+        if (token.id == 0 || token.ageSeconds < 0.0F || token.ageSeconds >= lifetimeSeconds) {
+            return false;
+        }
+    }
+    tokens_ = state.tokens;
+    spawnTimer_ = state.spawnTimer;
+    nextId_ = state.nextId;
+    random_ = restoredRandom;
+    return true;
 }
 
 void SunSystem::spawn() {

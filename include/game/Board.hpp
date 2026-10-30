@@ -7,6 +7,7 @@
 #include <array>
 #include <memory>
 #include <optional>
+#include <vector>
 
 namespace object_project {
 
@@ -19,6 +20,8 @@ public:
     const Plant* plantAt(GridPosition position) const;
     void removeDeadPlants();
     void reset();
+    std::vector<PlantState> captureState() const;
+    bool restoreState(const std::vector<PlantState>& state);
 
 private:
     static constexpr std::size_t cellCount =

@@ -79,6 +79,30 @@ int main() {
         threepeaterCombat.projectiles().size() == 3,
         "threepeater fires into its lane and adjacent lanes"
     );
+    passed &= check(
+        threepeaterCombat.projectiles().size() == 3 &&
+            threepeaterCombat.projectiles()[0].row == 1 &&
+            threepeaterCombat.projectiles()[1].row == 2 &&
+            threepeaterCombat.projectiles()[2].row == 3,
+        "threepeater emits one visible projectile into each of its three lanes"
+    );
+
+    CombatSystem edgeThreepeaterCombat;
+    Board edgeThreepeaterBoard;
+    SunSystem edgeThreepeaterSuns(14U);
+    edgeThreepeaterBoard.place({0, 0}, PlantType::Threepeater);
+    edgeThreepeaterCombat.spawnNormalZombie(1, 800.0F);
+    edgeThreepeaterCombat.update(
+        Threepeater::attackIntervalSeconds,
+        edgeThreepeaterBoard,
+        edgeThreepeaterSuns
+    );
+    passed &= check(
+        edgeThreepeaterCombat.projectiles().size() == 2 &&
+            edgeThreepeaterCombat.projectiles()[0].row == 0 &&
+            edgeThreepeaterCombat.projectiles()[1].row == 1,
+        "threepeater fires only into the two valid lanes when planted on an edge"
+    );
 
     CombatSystem effectCombat;
     Board effectBoard;

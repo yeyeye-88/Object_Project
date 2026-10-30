@@ -23,9 +23,12 @@ void fit(sf::Sprite& sprite, const sf::Vector2f size) {
 IntroScreen::IntroScreen()
     : fontLoaded_(ui::loadChineseFont(font_)),
       backgroundLoaded_(backgroundTexture_.loadFromFile(
-          "assets/pvz/ui/reference/main_menu.png"
+          "assets/pvz/ui/screens/title_screen.jpg"
       )),
-      logoLoaded_(logoTexture_.loadFromFile("assets/pvz/ui/pvz_logo_.png")) {}
+      logoLoaded_(logoTexture_.loadFromFile("assets/pvz/ui/screens/title_logo.png")),
+      startButtonLoaded_(startButtonTexture_.loadFromFile(
+          "assets/pvz/ui/screens/start_grass_button.png"
+      )) {}
 
 bool IntroScreen::handleEvent(const sf::Event& event) const {
     if (const auto* click = event.getIf<sf::Event::MouseButtonPressed>()) {
@@ -40,32 +43,36 @@ void IntroScreen::update(const float deltaSeconds) {
 
 void IntroScreen::draw(sf::RenderWindow& window) const {
     sf::RectangleShape frame({960.0F, 600.0F});
-    frame.setFillColor({18, 53, 31});
+    frame.setFillColor({17, 30, 25});
     window.draw(frame);
     if (backgroundLoaded_) {
         sf::Sprite background(backgroundTexture_);
-        background.setPosition({30.0F, 0.0F});
+        fit(background, {960.0F, 600.0F});
+        const auto bounds = background.getGlobalBounds();
+        background.setPosition({(960.0F - bounds.size.x) * 0.5F,
+                                (600.0F - bounds.size.y) * 0.5F});
         window.draw(background);
     }
-    sf::RectangleShape shade({960.0F, 600.0F});
-    shade.setFillColor({12, 30, 20, 65});
-    window.draw(shade);
 
     if (logoLoaded_) {
         sf::Sprite logo(logoTexture_);
-        fit(logo, {520.0F, 190.0F});
-        logo.setPosition({220.0F, 80.0F});
+        fit(logo, {610.0F, 145.0F});
+        const auto bounds = logo.getGlobalBounds();
+        logo.setPosition({(960.0F - bounds.size.x) * 0.5F, 32.0F});
         window.draw(logo);
     }
 
-    sf::FloatRect promptBounds{{365.0F, 470.0F}, {230.0F, 56.0F}};
-    sf::RectangleShape prompt(promptBounds.size);
-    prompt.setPosition(promptBounds.position);
-    prompt.setFillColor({104, 58, 28, 235});
-    prompt.setOutlineColor({255, 216, 94});
-    prompt.setOutlineThickness(3.0F);
-    window.draw(prompt);
-    if (fontLoaded_) {
+    const sf::FloatRect promptBounds{{315.0F, 490.0F}, {330.0F, 90.0F}};
+    if (startButtonLoaded_) {
+        sf::Sprite prompt(startButtonTexture_);
+        fit(prompt, promptBounds.size);
+        prompt.setPosition(promptBounds.position);
+        const auto pointer = window.mapPixelToCoords(sf::Mouse::getPosition(window));
+        if (promptBounds.contains(pointer)) {
+            prompt.setColor({255, 245, 205});
+        }
+        window.draw(prompt);
+    } else if (fontLoaded_) {
         sf::Text text(font_, ui::utf8("点击进入游戏"), 30);
         text.setFillColor({255, 229, 121, static_cast<std::uint8_t>(210 + 45 * (0.5F + 0.5F * std::sin(time_ * 4.0F)))});
         ui::centerText(text, promptBounds);

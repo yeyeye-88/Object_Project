@@ -23,7 +23,7 @@ public:
 private:
     enum class VaseContent { Peashooter, SnowPea, Squash, NormalZombie, Buckethead, Jackbox };
     enum class VasePlant { Peashooter, SnowPea, Squash };
-    enum class VaseZombie { Normal, Buckethead, Jackbox };
+    enum class VaseZombie { Normal, Conehead, Buckethead, Flag, Newspaper, Jackbox };
 
     struct Vase { int row{}; int column{}; VaseContent content{}; bool green{}; bool opened{}; };
     struct SeedPacket { int row{}; int column{}; VasePlant type{}; float age{}; };
@@ -43,7 +43,10 @@ private:
         float x{};
         VaseZombie type{};
         float health{100.0F};
+        float maxHealth{100.0F};
         float speed{18.0F};
+        float baseSpeed{18.0F};
+        float slowRemaining{};
         float age{};
         float attackTimer{};
         float damageFlash{};
@@ -55,6 +58,7 @@ private:
     struct ShatterEffect { sf::Vector2f position{}; float age{}; };
     struct HitEffect { sf::Vector2f position{}; float age{}; bool frozen{}; };
     struct DeathEffect { int row{}; float x{}; VaseZombie type{}; float age{}; };
+    struct ExplosionEffect { int row{}; float x{}; float age{}; };
 
     void resetVasebreaker();
     void resetBowling();
@@ -66,7 +70,8 @@ private:
     void drawZombie(sf::RenderWindow& window, const Zombie& zombie) const;
     void drawPlant(sf::RenderWindow& window, const Plant& plant) const;
     void drawSeedPacket(sf::RenderWindow& window, sf::Vector2f position,
-                        const sf::Texture& portrait, bool selected = false) const;
+                        const sf::Texture& portrait, bool selected = false,
+                        bool cropSquashPortrait = false) const;
     void drawPlacementPreview(sf::RenderWindow& window) const;
     bool canPlaceAt(Cell cell) const;
     void drawText(sf::RenderWindow& window, const char* value, unsigned int size,
@@ -94,9 +99,11 @@ private:
     std::vector<Projectile> projectiles_;
     std::vector<Nut> nuts_;
     std::vector<ConveyorCard> conveyorCards_;
+    int conveyorCardsProduced_{};
     std::vector<ShatterEffect> shatterEffects_;
     std::vector<HitEffect> hitEffects_;
     std::vector<DeathEffect> deathEffects_;
+    std::vector<ExplosionEffect> explosionEffects_;
 
     sf::Font font_;
     sf::Texture dayLawnTexture_;
@@ -113,21 +120,34 @@ private:
     sf::Texture flagPartsTexture_;
     sf::Texture hammerTexture_;
     sf::Texture vaseChunksTexture_;
+    std::array<sf::Texture, 3> bucketArmorTextures_;
+    std::array<bool, 3> bucketArmorLoaded_{};
+    std::array<sf::Texture, 3> coneArmorTextures_;
+    std::array<bool, 3> coneArmorLoaded_{};
     std::vector<sf::Texture> peashooterFrames_;
     std::vector<sf::Texture> snowPeaFrames_;
     std::vector<sf::Texture> squashFrames_;
     std::vector<sf::Texture> squashAttackFrames_;
     std::vector<sf::Texture> normalZombieFrames_;
+    std::vector<sf::Texture> coneZombieFrames_;
     std::vector<sf::Texture> bucketZombieFrames_;
+    std::vector<sf::Texture> flagZombieFrames_;
+    std::vector<sf::Texture> newspaperZombieFrames_;
     std::vector<sf::Texture> jackboxFrames_;
     std::vector<sf::Texture> normalAttackFrames_;
+    std::vector<sf::Texture> coneAttackFrames_;
     std::vector<sf::Texture> bucketAttackFrames_;
+    std::vector<sf::Texture> flagAttackFrames_;
+    std::vector<sf::Texture> newspaperAttackFrames_;
     std::vector<sf::Texture> jackboxAttackFrames_;
     std::vector<sf::Texture> normalDeathFrames_;
+    std::vector<sf::Texture> normalDamagedFrames_;
+    std::vector<sf::Texture> normalDamagedAttackFrames_;
     std::vector<sf::Texture> jackboxDeathFrames_;
     std::vector<sf::Texture> peaHitFrames_;
     std::vector<sf::Texture> wallnutFrames_;
     std::vector<sf::Texture> explodeNutFrames_;
+    std::vector<sf::Texture> explosionFrames_;
 
     sf::SoundBuffer bowlingBuffer_;
     sf::SoundBuffer impactBuffer_;

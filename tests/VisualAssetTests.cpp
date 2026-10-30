@@ -105,6 +105,8 @@ int main() {
         "assets/pvz/animations/zombies/pole_jump/16.png",
         "assets/pvz/animations/zombies/newspaper_transition/10.png",
         "assets/pvz/animations/zombies/death/normal/9.png",
+        "assets/pvz/animations/zombies/damaged/normal/17.png",
+        "assets/pvz/animations/zombies/damaged_attack/normal/10.png",
         "assets/pvz/animations/zombies/death/pole_vaulting/8.png",
         "assets/pvz/animations/zombies/death/newspaper/10.png",
         "assets/pvz/animations/effects/cherry_explosion/0.png",
@@ -142,6 +144,12 @@ int main() {
         "assets/pvz/animations/zombies/attack/jackbox/6.png",
         "assets/pvz/animations/zombies/death/jackbox/8.png",
         "assets/pvz/animations/effects/pea_hit/0.png",
+        "assets/pvz/zombies/armor/bucket_intact.png",
+        "assets/pvz/zombies/armor/bucket_damaged.png",
+        "assets/pvz/zombies/armor/bucket_critical.png",
+        "assets/pvz/zombies/armor/cone_intact.png",
+        "assets/pvz/zombies/armor/cone_damaged.png",
+        "assets/pvz/zombies/armor/cone_critical.png",
     };
     const std::vector<std::string_view> audioPaths{
         "assets/pvz/audio/UraniwaNi.ogg",
