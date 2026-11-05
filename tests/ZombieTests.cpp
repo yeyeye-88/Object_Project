@@ -98,5 +98,27 @@ int main() {
     );
     newspaper.updateSpecialState(2.0F);
     passed &= check(!newspaper.isTransforming(), "newspaper transition state expires");
+
+    const auto screenDoor = createZombie(ZombieType::ScreenDoor, 1, 600.0F);
+    const auto football = createZombie(ZombieType::Football, 2, 600.0F);
+    const auto dancer = createZombie(ZombieType::Dancing, 3, 600.0F);
+    const auto backup = createZombie(ZombieType::BackupDancer, 4, 600.0F);
+    passed &= check(
+        screenDoor && screenDoor->armor() == ScreenDoorZombie::maximumArmor &&
+            football && football->armor() == FootballZombie::maximumArmor,
+        "expanded armored zombie types expose their original roles"
+    );
+    passed &= check(
+        dancer && dancer->type() == ZombieType::Dancing && backup &&
+            backup->type() == ZombieType::BackupDancer,
+        "factory creates dancing zombie and backup dancer"
+    );
+
+    DancingZombie summoner(2, 600.0F);
+    summoner.updateSpecialState(DancingZombie::firstSummonDelay +
+                                DancingZombie::summonAnimationSeconds);
+    passed &= check(summoner.summonReady(), "dancing zombie becomes ready after summon animation");
+    summoner.finishSummon();
+    passed &= check(!summoner.summonReady(), "dancing zombie waits before replacing dancers");
     return passed ? 0 : 1;
 }

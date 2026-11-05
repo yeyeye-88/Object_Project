@@ -25,6 +25,10 @@ M4 本地课程版本使用了 `D:\Object\Plants-vs-zombies\663` 中的角色动
 这些素材属于《植物大战僵尸》原作资源，仅用于课程学习与本地演示，不声明为原创，
 也不能在未取得许可的情况下用于公开商业发布。
 
+M5 扩展僵尸继续使用同一素材库中的 `ScreenDoorZombie`、`FootballZombie`、
+`DancingZombie` 和 `BackupDancer` GIF 序列，以及 `audio/dancer.ogg`。GIF 仅按原帧
+拆分为项目可读取的 PNG 序列，没有重新绘制或生成角色图像。
+
 坚果保龄球的传送带、红线、进度条，以及砸罐子的锤子、罐子碎片和碎罐音效，补充取自
 公开的原版资源提取仓库 `https://github.com/FregD156/PvZ_Assets`。该仓库说明资源来自
 原版 macOS 游戏包；这些文件同样只用于课程学习与本地演示，不能据此视为开放许可素材。

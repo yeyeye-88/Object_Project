@@ -157,6 +157,18 @@ bool PoleVaultingZombie::restoreSpecialState(const ZombieState& state) {
 NewspaperZombie::NewspaperZombie(const int row, const float x)
     : Zombie(row, x, maximumHealth, newspaperArmor) {}
 
+ScreenDoorZombie::ScreenDoorZombie(const int row, const float x)
+    : Zombie(row, x, maximumHealth, maximumArmor) {}
+
+FootballZombie::FootballZombie(const int row, const float x)
+    : Zombie(row, x, maximumHealth, maximumArmor) {}
+
+DancingZombie::DancingZombie(const int row, const float x)
+    : Zombie(row, x, maximumHealth, 0) {}
+
+BackupDancerZombie::BackupDancerZombie(const int row, const float x)
+    : Zombie(row, x, maximumHealth, 0) {}
+
 void NewspaperZombie::onArmorBroken() {
     transitionRemainingSeconds_ = transitionAnimationSeconds;
 }
@@ -181,6 +193,36 @@ bool NewspaperZombie::restoreSpecialState(const ZombieState& state) {
     return true;
 }
 
+bool DancingZombie::isSummoning() const {
+    return summonTimer_ <= 0.0F && summonTimer_ > -summonAnimationSeconds;
+}
+
+float DancingZombie::summonProgress() const {
+    return std::clamp(-summonTimer_ / summonAnimationSeconds, 0.0F, 1.0F);
+}
+
+void DancingZombie::finishSummon() {
+    summonTimer_ = resummonDelay;
+}
+
+void DancingZombie::updateSpecialState(const float deltaSeconds) {
+    if (!isAttacking() && deltaSeconds > 0.0F) {
+        summonTimer_ -= deltaSeconds;
+    }
+}
+
+void DancingZombie::captureSpecialState(ZombieState& state) const {
+    state.specialA = summonTimer_;
+}
+
+bool DancingZombie::restoreSpecialState(const ZombieState& state) {
+    if (state.specialA < -summonAnimationSeconds || state.specialA > resummonDelay) {
+        return false;
+    }
+    summonTimer_ = state.specialA;
+    return true;
+}
+
 std::unique_ptr<Zombie> createZombie(
     const ZombieType type,
     const int row,
@@ -199,6 +241,14 @@ std::unique_ptr<Zombie> createZombie(
             return std::make_unique<PoleVaultingZombie>(row, x);
         case ZombieType::Newspaper:
             return std::make_unique<NewspaperZombie>(row, x);
+        case ZombieType::ScreenDoor:
+            return std::make_unique<ScreenDoorZombie>(row, x);
+        case ZombieType::Football:
+            return std::make_unique<FootballZombie>(row, x);
+        case ZombieType::Dancing:
+            return std::make_unique<DancingZombie>(row, x);
+        case ZombieType::BackupDancer:
+            return std::make_unique<BackupDancerZombie>(row, x);
         case ZombieType::Count:
             break;
     }

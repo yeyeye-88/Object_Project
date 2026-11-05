@@ -52,8 +52,15 @@ std::vector<SpawnEvent> LevelSystem::updateEndless() {
             type = ZombieType::Flag;
         } else {
             const std::size_t selector =
-                (endlessSpawnCount_ * 3 + indexInWave + static_cast<std::size_t>(currentWave_)) % 12;
-            if (currentWave_ >= 4 && selector >= 10) {
+                (endlessSpawnCount_ * 5 + indexInWave * 2 +
+                 static_cast<std::size_t>(currentWave_) * 3) % 20;
+            if (currentWave_ >= 8 && selector == 19) {
+                type = ZombieType::Dancing;
+            } else if (currentWave_ >= 6 && selector >= 17) {
+                type = ZombieType::Football;
+            } else if (currentWave_ >= 4 && selector >= 14) {
+                type = ZombieType::ScreenDoor;
+            } else if (currentWave_ >= 4 && selector >= 11) {
                 type = ZombieType::Newspaper;
             } else if (currentWave_ >= 3 && selector >= 8) {
                 type = ZombieType::PoleVaulting;

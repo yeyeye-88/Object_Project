@@ -181,6 +181,10 @@ GameScreen::GameScreen(GameSession& session) : session_(session) {
         "assets/pvz/zombies/flag.png",
         "assets/pvz/zombies/pole_vaulting.gif",
         "assets/pvz/zombies/newspaper.gif",
+        "assets/pvz/animations/zombies/screen_door/0.png",
+        "assets/pvz/animations/zombies/football/0.png",
+        "assets/pvz/animations/zombies/dancing/0.png",
+        "assets/pvz/animations/zombies/backup_dancer/0.png",
     };
 
     for (std::size_t index = 0; index < plantTypeCount; ++index) {
@@ -244,6 +248,18 @@ GameScreen::GameScreen(GameSession& session) : session_(session) {
     zombieAnimationFrames_[static_cast<std::size_t>(ZombieType::Newspaper)] = loadNumberedFrames(
         "assets/pvz/animations/zombies/newspaper", 0, 18
     );
+    zombieAnimationFrames_[static_cast<std::size_t>(ZombieType::ScreenDoor)] = loadNumberedFrames(
+        "assets/pvz/animations/zombies/screen_door", 0, 22
+    );
+    zombieAnimationFrames_[static_cast<std::size_t>(ZombieType::Football)] = loadNumberedFrames(
+        "assets/pvz/animations/zombies/football", 0, 10
+    );
+    zombieAnimationFrames_[static_cast<std::size_t>(ZombieType::Dancing)] = loadNumberedFrames(
+        "assets/pvz/animations/zombies/dancing", 0, 26
+    );
+    zombieAnimationFrames_[static_cast<std::size_t>(ZombieType::BackupDancer)] = loadNumberedFrames(
+        "assets/pvz/animations/zombies/backup_dancer", 0, 27
+    );
     poleWalkingAnimationFrames_ = loadNumberedFrames(
         "assets/pvz/animations/zombies/pole_walking", 0, 24
     );
@@ -262,6 +278,23 @@ GameScreen::GameScreen(GameSession& session) : session_(session) {
         loadNumberedFrames("assets/pvz/animations/zombies/attack/pole_vaulting", 0, 13);
     zombieAttackAnimationFrames_[static_cast<std::size_t>(ZombieType::Newspaper)] =
         loadNumberedFrames("assets/pvz/animations/zombies/attack/newspaper", 0, 7);
+    zombieAttackAnimationFrames_[static_cast<std::size_t>(ZombieType::ScreenDoor)] =
+        loadNumberedFrames("assets/pvz/animations/zombies/attack/screen_door", 0, 11);
+    zombieAttackAnimationFrames_[static_cast<std::size_t>(ZombieType::Football)] =
+        loadNumberedFrames("assets/pvz/animations/zombies/attack/football", 0, 9);
+    zombieAttackAnimationFrames_[static_cast<std::size_t>(ZombieType::Dancing)] =
+        loadNumberedFrames("assets/pvz/animations/zombies/attack/dancing", 0, 10);
+    zombieAttackAnimationFrames_[static_cast<std::size_t>(ZombieType::BackupDancer)] =
+        loadNumberedFrames("assets/pvz/animations/zombies/attack/backup_dancer", 0, 8);
+    footballUnarmoredAnimationFrames_ = loadNumberedFrames(
+        "assets/pvz/animations/zombies/football_unarmored", 0, 10
+    );
+    footballUnarmoredAttackAnimationFrames_ = loadNumberedFrames(
+        "assets/pvz/animations/zombies/attack/football_unarmored", 0, 10
+    );
+    dancingSummonAnimationFrames_ = loadNumberedFrames(
+        "assets/pvz/animations/zombies/dancing_summon", 0, 2
+    );
     newspaperEnragedAttackAnimationFrames_ = loadNumberedFrames(
         "assets/pvz/animations/zombies/attack/newspaper_enraged", 0, 6
     );
@@ -285,6 +318,15 @@ GameScreen::GameScreen(GameSession& session) : session_(session) {
     );
     newspaperDeathAnimationFrames_ = loadNumberedFrames(
         "assets/pvz/animations/zombies/death/newspaper", 0, 10
+    );
+    footballDeathAnimationFrames_ = loadNumberedFrames(
+        "assets/pvz/animations/zombies/death/football", 0, 6
+    );
+    dancingDeathAnimationFrames_ = loadNumberedFrames(
+        "assets/pvz/animations/zombies/death/dancing", 0, 11
+    );
+    backupDancerDeathAnimationFrames_ = loadNumberedFrames(
+        "assets/pvz/animations/zombies/death/backup_dancer", 0, 24
     );
     cherryExplosionAnimationFrames_ = loadNumberedFrames(
         "assets/pvz/animations/effects/cherry_explosion", 0, 12
@@ -551,6 +593,9 @@ void GameScreen::update(const float deltaSeconds) {
                 break;
             case CombatEvent::FirePeaIgnited:
                 queueOnce(SoundCue::FirePea);
+                break;
+            case CombatEvent::DancersSummoned:
+                queueOnce(SoundCue::Dancer);
                 break;
         }
     }
@@ -900,6 +945,13 @@ void GameScreen::drawCombat(sf::RenderWindow& window) const {
             bodyColor = zombie->isEnraged()
                 ? sf::Color(190, 62, 48)
                 : sf::Color(125, 126, 100);
+        } else if (zombie->type() == ZombieType::ScreenDoor) {
+            bodyColor = {110, 125, 105};
+        } else if (zombie->type() == ZombieType::Football) {
+            bodyColor = {135, 34, 38};
+        } else if (zombie->type() == ZombieType::Dancing ||
+                   zombie->type() == ZombieType::BackupDancer) {
+            bodyColor = {92, 75, 116};
         }
         if (zombie->isSlowed()) {
             bodyColor = sf::Color(
@@ -923,6 +975,12 @@ void GameScreen::drawCombat(sf::RenderWindow& window) const {
         if (lostHeadgear || separateBucketArmor || separateConeArmor) {
             animation = &zombieAnimationFrames_[static_cast<std::size_t>(ZombieType::Normal)];
         }
+        if (zombie->type() == ZombieType::ScreenDoor && zombie->armor() == 0) {
+            animation = &zombieAnimationFrames_[static_cast<std::size_t>(ZombieType::Normal)];
+        } else if (zombie->type() == ZombieType::Football && zombie->armor() == 0 &&
+                   !footballUnarmoredAnimationFrames_.empty()) {
+            animation = &footballUnarmoredAnimationFrames_;
+        }
         const bool bodyCriticallyDamaged = zombie->armor() == 0 &&
             zombie->health() * 2 <= zombie->maxHealth() &&
             (zombie->type() == ZombieType::Normal || zombie->type() == ZombieType::Conehead ||
@@ -939,12 +997,21 @@ void GameScreen::drawCombat(sf::RenderWindow& window) const {
                    !newspaperTransitionAnimationFrames_.empty()) {
             animation = &newspaperTransitionAnimationFrames_;
             oneShotProgress = zombie->transformationProgress();
+        } else if (zombie->type() == ZombieType::Dancing && zombie->isSummoning() &&
+                   !dancingSummonAnimationFrames_.empty()) {
+            animation = &dancingSummonAnimationFrames_;
+            oneShotProgress = zombie->summonProgress();
         } else if (zombie->isAttacking() && zombie->type() == ZombieType::Newspaper &&
                    zombie->isEnraged() && !newspaperEnragedAttackAnimationFrames_.empty()) {
             animation = &newspaperEnragedAttackAnimationFrames_;
         } else if (zombie->isAttacking() &&
                    !zombieAttackAnimationFrames_[zombieIndex].empty()) {
-            animation = bodyCriticallyDamaged && !normalDamagedAttackAnimationFrames_.empty()
+            animation = zombie->type() == ZombieType::ScreenDoor && zombie->armor() == 0
+                ? &zombieAttackAnimationFrames_[static_cast<std::size_t>(ZombieType::Normal)]
+                : zombie->type() == ZombieType::Football && zombie->armor() == 0 &&
+                          !footballUnarmoredAttackAnimationFrames_.empty()
+                ? &footballUnarmoredAttackAnimationFrames_
+                : bodyCriticallyDamaged && !normalDamagedAttackAnimationFrames_.empty()
                 ? &normalDamagedAttackAnimationFrames_
                 : (lostHeadgear || separateBucketArmor || separateConeArmor)
                 ? &zombieAttackAnimationFrames_[static_cast<std::size_t>(ZombieType::Normal)]
@@ -974,11 +1041,13 @@ void GameScreen::drawCombat(sf::RenderWindow& window) const {
             sf::Sprite sprite(*zombieTexture);
             const float collisionWidth = CombatSystem::zombieWidth * visualScaleX;
             const bool poleVaulting = zombie->type() == ZombieType::PoleVaulting;
+            const bool tallZombie = zombie->type() == ZombieType::Football ||
+                                    zombie->type() == ZombieType::Dancing;
             placeBottomCenteredAtHeight(
                 sprite,
                 zombieX + collisionWidth * 0.5F - (poleVaulting ? 52.0F : 0.0F),
                 BoardGeometry::cellTop(zombie->row()) + 104.0F + visualYOffset,
-                poleVaulting ? 182.0F : 132.0F
+                poleVaulting ? 182.0F : tallZombie ? 145.0F : 132.0F
             );
             if (zombie->isSlowed()) {
                 sprite.setColor({125, 190, 255});
@@ -1058,6 +1127,12 @@ void GameScreen::drawCombat(sf::RenderWindow& window) const {
             animation = &poleDeathAnimationFrames_;
         } else if (effect.type == ZombieType::Newspaper) {
             animation = &newspaperDeathAnimationFrames_;
+        } else if (effect.type == ZombieType::Football) {
+            animation = &footballDeathAnimationFrames_;
+        } else if (effect.type == ZombieType::Dancing) {
+            animation = &dancingDeathAnimationFrames_;
+        } else if (effect.type == ZombieType::BackupDancer) {
+            animation = &backupDancerDeathAnimationFrames_;
         }
         if (animation->empty()) {
             continue;
@@ -1071,11 +1146,13 @@ void GameScreen::drawCombat(sf::RenderWindow& window) const {
         const float zombieX = boardToScreenX(effect.x);
         const float collisionWidth = CombatSystem::zombieWidth * visualScaleX;
         const bool poleVaulting = effect.type == ZombieType::PoleVaulting;
+        const bool tallZombie = effect.type == ZombieType::Football ||
+                                effect.type == ZombieType::Dancing;
         placeBottomCenteredAtHeight(
             sprite,
             zombieX + collisionWidth * 0.5F - (poleVaulting ? 52.0F : 0.0F),
             BoardGeometry::cellTop(effect.row) + 104.0F,
-            poleVaulting ? 182.0F : 132.0F
+            poleVaulting ? 182.0F : tallZombie ? 145.0F : 132.0F
         );
         if (effect.slowed) {
             sprite.setColor({125, 190, 255});

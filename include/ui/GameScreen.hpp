@@ -138,12 +138,18 @@ private:
     std::vector<sf::Texture> poleJumpAnimationFrames_;
     std::vector<sf::Texture> newspaperEnragedAnimationFrames_;
     std::vector<sf::Texture> newspaperEnragedAttackAnimationFrames_;
+    std::vector<sf::Texture> footballUnarmoredAnimationFrames_;
+    std::vector<sf::Texture> footballUnarmoredAttackAnimationFrames_;
+    std::vector<sf::Texture> dancingSummonAnimationFrames_;
     std::vector<sf::Texture> newspaperTransitionAnimationFrames_;
     std::vector<sf::Texture> normalDeathAnimationFrames_;
     std::vector<sf::Texture> normalDamagedAnimationFrames_;
     std::vector<sf::Texture> normalDamagedAttackAnimationFrames_;
     std::vector<sf::Texture> poleDeathAnimationFrames_;
     std::vector<sf::Texture> newspaperDeathAnimationFrames_;
+    std::vector<sf::Texture> footballDeathAnimationFrames_;
+    std::vector<sf::Texture> dancingDeathAnimationFrames_;
+    std::vector<sf::Texture> backupDancerDeathAnimationFrames_;
     std::vector<sf::Texture> cherryExplosionAnimationFrames_;
     std::vector<sf::Texture> potatoExplosionAnimationFrames_;
     std::vector<sf::Texture> sporeAnimationFrames_;

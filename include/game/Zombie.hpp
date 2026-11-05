@@ -14,6 +14,10 @@ enum class ZombieType {
     Flag,
     PoleVaulting,
     Newspaper,
+    ScreenDoor,
+    Football,
+    Dancing,
+    BackupDancer,
     Count,
 };
 
@@ -52,6 +56,10 @@ public:
     virtual bool isEnraged() const { return false; }
     virtual bool isTransforming() const { return false; }
     virtual float transformationProgress() const { return 0.0F; }
+    virtual bool isSummoning() const { return false; }
+    virtual bool summonReady() const { return false; }
+    virtual float summonProgress() const { return 0.0F; }
+    virtual void finishSummon() {}
     virtual void updateSpecialState(float) {}
 
     int row() const { return row_; }
@@ -211,6 +219,88 @@ private:
 
     static constexpr float transitionAnimationSeconds = 1.1F;
     float transitionRemainingSeconds_{};
+};
+
+class ScreenDoorZombie final : public Zombie {
+public:
+    static constexpr int maximumHealth = 100;
+    static constexpr int maximumArmor = 220;
+    static constexpr float speed = 11.0F;
+    static constexpr int damage = 20;
+    static constexpr float attackInterval = 1.0F;
+
+    ScreenDoorZombie(int row, float x);
+    ZombieType type() const override { return ZombieType::ScreenDoor; }
+    float movementSpeed() const override { return speed; }
+    int attackDamage() const override { return damage; }
+    float attackIntervalSeconds() const override { return attackInterval; }
+};
+
+class FootballZombie final : public Zombie {
+public:
+    static constexpr int maximumHealth = 100;
+    static constexpr int maximumArmor = 420;
+    static constexpr float speed = 24.0F;
+    static constexpr int damage = 25;
+    static constexpr float attackInterval = 0.8F;
+
+    FootballZombie(int row, float x);
+    ZombieType type() const override { return ZombieType::Football; }
+    float movementSpeed() const override { return speed; }
+    int attackDamage() const override { return damage; }
+    float attackIntervalSeconds() const override { return attackInterval; }
+};
+
+class DancingZombie final : public Zombie {
+public:
+    static constexpr int maximumHealth = 185;
+    static constexpr float speed = 12.0F;
+    static constexpr int damage = 20;
+    static constexpr float attackInterval = 1.0F;
+    static constexpr float firstSummonDelay = 2.0F;
+    static constexpr float resummonDelay = 12.0F;
+    static constexpr float summonAnimationSeconds = 1.0F;
+
+    DancingZombie(int row, float x);
+    ZombieType type() const override { return ZombieType::Dancing; }
+    float movementSpeed() const override { return speed; }
+    int attackDamage() const override { return damage; }
+    float attackIntervalSeconds() const override { return attackInterval; }
+    bool isSummoning() const override;
+    bool summonReady() const override { return summonTimer_ <= -summonAnimationSeconds; }
+    float summonProgress() const override;
+    void finishSummon() override;
+    void updateSpecialState(float deltaSeconds) override;
+
+private:
+    void captureSpecialState(ZombieState& state) const override;
+    bool restoreSpecialState(const ZombieState& state) override;
+    float summonTimer_{firstSummonDelay};
+};
+
+class BackupDancerZombie final : public Zombie {
+public:
+    static constexpr int maximumHealth = 100;
+    static constexpr float speed = DancingZombie::speed;
+    static constexpr int damage = 20;
+    static constexpr float attackInterval = 1.0F;
+
+    BackupDancerZombie(int row, float x);
+    ZombieType type() const override { return ZombieType::BackupDancer; }
+    float movementSpeed() const override { return speed; }
+    int attackDamage() const override { return damage; }
+    float attackIntervalSeconds() const override { return attackInterval; }
+    void bindToLeader(const Zombie* leader, int slot) {
+        leader_ = leader;
+        slot_ = slot;
+    }
+    void detachFromLeader() { leader_ = nullptr; }
+    const Zombie* leader() const { return leader_; }
+    int formationSlot() const { return slot_; }
+
+private:
+    const Zombie* leader_{};
+    int slot_{-1};
 };
 
 std::unique_ptr<Zombie> createZombie(ZombieType type, int row, float x);

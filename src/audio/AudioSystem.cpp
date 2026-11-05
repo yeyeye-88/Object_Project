@@ -25,6 +25,7 @@ AudioSystem::AudioSystem() {
         "assets/pvz/audio/firepea.ogg",
         "assets/pvz/audio/winmusic.ogg",
         "assets/pvz/audio/losemusic.ogg",
+        "assets/pvz/audio/dancer.ogg",
     }};
     for (std::size_t index = 0; index < cueCount; ++index) {
         if (buffers_[index].loadFromFile(std::string(soundPaths[index]))) {

@@ -99,5 +99,19 @@ int main() {
         level.currentWave() == 12 && level.elapsedSeconds() == 0.0F,
         "endless mode can resume from an explicit wave"
     );
+    level.startEndlessAtWave(8);
+    const auto expandedWave = level.update(80.0F);
+    bool hasScreenDoor = false;
+    bool hasFootball = false;
+    bool hasDancing = false;
+    for (const SpawnEvent& event : expandedWave) {
+        hasScreenDoor |= event.type == ZombieType::ScreenDoor;
+        hasFootball |= event.type == ZombieType::Football;
+        hasDancing |= event.type == ZombieType::Dancing;
+    }
+    passed &= check(
+        hasScreenDoor && hasFootball && hasDancing,
+        "late endless waves introduce all expanded zombie roles"
+    );
     return passed ? 0 : 1;
 }

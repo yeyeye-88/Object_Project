@@ -321,5 +321,23 @@ int main() {
             blockingTallNut->health() == TallNut::maximumHealth - PoleVaultingZombie::damage,
         "tall-nut blocks vaulting and is attacked instead"
     );
+
+    CombatSystem danceCombat;
+    Board danceBoard;
+    SunSystem danceSuns(31U);
+    danceCombat.spawnZombie(ZombieType::Dancing, 2, 700.0F);
+    danceCombat.update(
+        DancingZombie::firstSummonDelay + DancingZombie::summonAnimationSeconds + 0.1F,
+        danceBoard,
+        danceSuns
+    );
+    std::size_t backupCount = 0;
+    for (const auto& zombie : danceCombat.zombies()) {
+        backupCount += zombie->type() == ZombieType::BackupDancer ? 1U : 0U;
+    }
+    passed &= check(
+        backupCount == 4,
+        "dancing zombie summons four backup dancers in the middle lane"
+    );
     return passed ? 0 : 1;
 }

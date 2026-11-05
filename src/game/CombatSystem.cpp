@@ -140,6 +140,7 @@ bool CombatSystem::restoreState(const CombatSystemState& state) {
         }
     }
     zombies_ = std::move(restoredZombies);
+    rebuildDanceGroups();
     projectiles_ = state.projectiles;
     delayedAreaDamages_ = state.delayedAreaDamages;
     mowers_ = state.mowers;
@@ -406,7 +407,11 @@ void CombatSystem::updateProjectiles(const float deltaSeconds, const Board& boar
                 events_.push_back(CombatEvent::NewspaperBroken);
             }
             if (projectile.type == Projectile::Type::FrozenPea) {
-                target->applySlow(frozenPeaSpeedMultiplier, frozenPeaDurationSeconds);
+                const bool shieldBlocksCold = target->type() == ZombieType::ScreenDoor &&
+                                              target->armor() > 0;
+                if (!shieldBlocksCold) {
+                    target->applySlow(frozenPeaSpeedMultiplier, frozenPeaDurationSeconds);
+                }
             }
             projectile.damage = 0;
         }
@@ -447,6 +452,18 @@ void CombatSystem::updateDelayedAreaDamages(const float deltaSeconds) {
 }
 
 void CombatSystem::updateZombies(const float deltaSeconds, Board& board) {
+    struct PendingDancer {
+        int row{};
+        float x{};
+        DancingZombie* leader{};
+        int slot{};
+    };
+    std::vector<PendingDancer> pendingDancers;
+    std::vector<std::pair<Zombie*, float>> startingPositions;
+    startingPositions.reserve(zombies_.size());
+    for (const auto& zombie : zombies_) {
+        startingPositions.emplace_back(zombie.get(), zombie->x());
+    }
     for (const auto& zombie : zombies_) {
         if (zombie->isDead()) {
             continue;
@@ -467,7 +484,7 @@ void CombatSystem::updateZombies(const float deltaSeconds, Board& board) {
 
         if (blockingPlant == nullptr) {
             zombie->updateAttack(deltaSeconds, false);
-            if (!zombie->isVaulting()) {
+            if (!zombie->isVaulting() && !zombie->isSummoning()) {
                 zombie->move(deltaSeconds);
             }
         } else if (zombie->canVault() && !blockingPlant->blocksVaulting()) {
@@ -484,6 +501,91 @@ void CombatSystem::updateZombies(const float deltaSeconds, Board& board) {
         }
         zombie->updateStatusEffects(deltaSeconds);
         zombie->updateSpecialState(deltaSeconds);
+        if (zombie->type() == ZombieType::Dancing && zombie->summonReady()) {
+            static constexpr std::array<std::pair<int, float>, 4> offsets{{
+                {-1, 0.0F},
+                {1, 0.0F},
+                {0, -BoardGeometry::cellWidth},
+                {0, BoardGeometry::cellWidth},
+            }};
+            auto* leader = dynamic_cast<DancingZombie*>(zombie.get());
+            for (std::size_t slot = 0; slot < offsets.size(); ++slot) {
+                const auto& [rowOffset, xOffset] = offsets[slot];
+                const int dancerRow = zombie->row() + rowOffset;
+                const float dancerX = zombie->x() + xOffset;
+                if (dancerRow < 0 || dancerRow >= BoardGeometry::rows) {
+                    continue;
+                }
+                const bool occupied = std::any_of(
+                    zombies_.begin(),
+                    zombies_.end(),
+                    [leader, slot](const std::unique_ptr<Zombie>& candidate) {
+                        const auto* dancer = dynamic_cast<const BackupDancerZombie*>(candidate.get());
+                        return dancer != nullptr && !dancer->isDead() &&
+                               dancer->leader() == leader &&
+                               dancer->formationSlot() == static_cast<int>(slot);
+                    }
+                );
+                if (!occupied) {
+                    pendingDancers.push_back({
+                        dancerRow,
+                        dancerX,
+                        leader,
+                        static_cast<int>(slot),
+                    });
+                }
+            }
+            zombie->finishSummon();
+        }
+    }
+
+    for (const auto& possibleLeader : zombies_) {
+        if (possibleLeader->isDead() || possibleLeader->type() != ZombieType::Dancing) {
+            continue;
+        }
+        std::vector<Zombie*> group{possibleLeader.get()};
+        for (const auto& possibleDancer : zombies_) {
+            auto* dancer = dynamic_cast<BackupDancerZombie*>(possibleDancer.get());
+            if (dancer != nullptr && !dancer->isDead() &&
+                dancer->leader() == possibleLeader.get()) {
+                group.push_back(dancer);
+            }
+        }
+        const bool groupBlocked = std::any_of(
+            group.begin(), group.end(), [](const Zombie* member) { return member->isAttacking(); }
+        );
+        float sharedSlowMultiplier = 1.0F;
+        float sharedSlowDuration = 0.0F;
+        for (const Zombie* member : group) {
+            if (member->isSlowed()) {
+                sharedSlowMultiplier = std::min(sharedSlowMultiplier, member->speedMultiplier());
+                sharedSlowDuration = std::max(sharedSlowDuration, member->slowRemainingSeconds());
+            }
+        }
+        for (Zombie* member : group) {
+            if (groupBlocked) {
+                const auto before = std::find_if(
+                    startingPositions.begin(), startingPositions.end(),
+                    [member](const auto& entry) { return entry.first == member; }
+                );
+                if (before != startingPositions.end()) {
+                    member->setX(before->second);
+                }
+            }
+            if (sharedSlowMultiplier < 1.0F) {
+                member->applySlow(sharedSlowMultiplier, sharedSlowDuration);
+            }
+        }
+    }
+    if (!pendingDancers.empty()) {
+        for (const PendingDancer& dancer : pendingDancers) {
+            Zombie& spawned = spawnZombie(ZombieType::BackupDancer, dancer.row, dancer.x);
+            auto* backup = dynamic_cast<BackupDancerZombie*>(&spawned);
+            if (backup != nullptr) {
+                backup->bindToLeader(dancer.leader, dancer.slot);
+            }
+        }
+        events_.push_back(CombatEvent::DancersSummoned);
     }
 }
 
@@ -534,6 +636,12 @@ void CombatSystem::updateMowers(const float deltaSeconds) {
 }
 
 void CombatSystem::removeDead() {
+    for (const auto& zombie : zombies_) {
+        auto* dancer = dynamic_cast<BackupDancerZombie*>(zombie.get());
+        if (dancer != nullptr && dancer->leader() != nullptr && dancer->leader()->isDead()) {
+            dancer->detachFromLeader();
+        }
+    }
     zombies_.erase(
         std::remove_if(
             zombies_.begin(),
@@ -544,6 +652,42 @@ void CombatSystem::removeDead() {
         ),
         zombies_.end()
     );
+}
+
+void CombatSystem::rebuildDanceGroups() {
+    static constexpr std::array<std::pair<int, float>, 4> offsets{{
+        {-1, 0.0F},
+        {1, 0.0F},
+        {0, -BoardGeometry::cellWidth},
+        {0, BoardGeometry::cellWidth},
+    }};
+    for (const auto& possibleLeader : zombies_) {
+        auto* leader = dynamic_cast<DancingZombie*>(possibleLeader.get());
+        if (leader == nullptr || leader->isDead()) {
+            continue;
+        }
+        for (std::size_t slot = 0; slot < offsets.size(); ++slot) {
+            const int expectedRow = leader->row() + offsets[slot].first;
+            const float expectedX = leader->x() + offsets[slot].second;
+            BackupDancerZombie* nearest = nullptr;
+            float nearestDistance = BoardGeometry::cellWidth * 0.55F;
+            for (const auto& candidate : zombies_) {
+                auto* dancer = dynamic_cast<BackupDancerZombie*>(candidate.get());
+                if (dancer == nullptr || dancer->isDead() || dancer->leader() != nullptr ||
+                    dancer->row() != expectedRow) {
+                    continue;
+                }
+                const float distance = std::abs(dancer->x() - expectedX);
+                if (distance < nearestDistance) {
+                    nearest = dancer;
+                    nearestDistance = distance;
+                }
+            }
+            if (nearest != nullptr) {
+                nearest->bindToLeader(leader, static_cast<int>(slot));
+            }
+        }
+    }
 }
 
 }  // namespace object_project

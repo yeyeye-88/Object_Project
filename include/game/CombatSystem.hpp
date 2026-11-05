@@ -64,6 +64,7 @@ enum class CombatEvent {
     NewspaperBroken,
     ZombieBite,
     FirePeaIgnited,
+    DancersSummoned,
 };
 
 struct ExplosionEvent {
@@ -162,6 +163,7 @@ private:
     void updateZombies(float deltaSeconds, Board& board);
     void updateMowers(float deltaSeconds);
     void removeDead();
+    void rebuildDanceGroups();
 
     std::vector<std::unique_ptr<Zombie>> zombies_;
     std::vector<Projectile> projectiles_;

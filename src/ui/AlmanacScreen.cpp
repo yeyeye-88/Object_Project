@@ -85,6 +85,10 @@ AlmanacScreen::AlmanacScreen() {
         "assets/pvz/zombies/flag.png",
         "assets/pvz/zombies/pole_vaulting.gif",
         "assets/pvz/animations/zombies/newspaper/0.png",
+        "assets/pvz/animations/zombies/screen_door/0.png",
+        "assets/pvz/animations/zombies/football/0.png",
+        "assets/pvz/animations/zombies/dancing/0.png",
+        "assets/pvz/animations/zombies/backup_dancer/0.png",
     };
     for (std::size_t index = 0; index < plantTextures_.size(); ++index) {
         plantLoaded_[index] = plantTextures_[index].loadFromFile(plantPaths[index]);

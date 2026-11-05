@@ -109,6 +109,16 @@ int main() {
         "assets/pvz/animations/zombies/damaged_attack/normal/10.png",
         "assets/pvz/animations/zombies/death/pole_vaulting/8.png",
         "assets/pvz/animations/zombies/death/newspaper/10.png",
+        "assets/pvz/animations/zombies/screen_door/22.png",
+        "assets/pvz/animations/zombies/attack/screen_door/11.png",
+        "assets/pvz/animations/zombies/football/10.png",
+        "assets/pvz/animations/zombies/football_unarmored/10.png",
+        "assets/pvz/animations/zombies/attack/football/9.png",
+        "assets/pvz/animations/zombies/death/football/6.png",
+        "assets/pvz/animations/zombies/dancing/26.png",
+        "assets/pvz/animations/zombies/dancing_summon/2.png",
+        "assets/pvz/animations/zombies/backup_dancer/27.png",
+        "assets/pvz/animations/zombies/backup_dancer_rise/21.png",
         "assets/pvz/animations/effects/cherry_explosion/0.png",
         "assets/pvz/animations/effects/cherry_explosion/12.png",
         "assets/pvz/animations/effects/potato_explosion/0.png",
@@ -178,6 +188,7 @@ int main() {
         "assets/pvz/audio/vase_breaking.ogg",
         "assets/pvz/audio/jackinthebox.ogg",
         "assets/pvz/audio/squash_hmm.ogg",
+        "assets/pvz/audio/dancer.ogg",
     };
 
     bool passed = true;
