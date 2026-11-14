@@ -36,6 +36,16 @@ enum class PlacementResult {
     GameOver,
 };
 
+enum class TutorialStep {
+    NotActive,
+    CollectSun,
+    PlantSunflower,
+    PlantPeashooter,
+    UseShovel,
+    Defend,
+    Complete,
+};
+
 class GameSession {
 public:
     static constexpr int initialSun = 150;
@@ -62,6 +72,8 @@ public:
     bool isPaused() const { return state_ == GameState::Paused; }
     int sun() const { return sun_; }
     int highestEndlessWave() const { return highestEndlessWave_; }
+    TutorialStep tutorialStep() const { return tutorialStep_; }
+    int tutorialStepNumber() const;
     bool isPlantAvailable(PlantType type) const {
         return level_.definition().allowsPlant(type);
     }
@@ -84,6 +96,7 @@ private:
     bool persistentEndlessProgress_{};
     bool hasEndlessResume_{};
     float endlessSaveTimer_{};
+    TutorialStep tutorialStep_{TutorialStep::NotActive};
 };
 
 }  // namespace object_project

@@ -92,6 +92,7 @@ private:
     void drawPauseOverlay(sf::RenderWindow& window) const;
     void drawResultOverlay(sf::RenderWindow& window) const;
     void drawFeedback(sf::RenderWindow& window) const;
+    void drawTutorialPrompt(sf::RenderWindow& window) const;
     void drawPlant(
         sf::RenderWindow& window,
         PlantType type,

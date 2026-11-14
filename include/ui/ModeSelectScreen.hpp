@@ -5,7 +5,7 @@
 namespace object_project {
 
 enum class ModeSelectCategory { Puzzle, MiniGames };
-enum class ModeSelectAction { None, Back, FirstMode, SecondMode };
+enum class ModeSelectAction { None, Back, FirstMode };
 
 class ModeSelectScreen {
 public:
@@ -33,8 +33,7 @@ private:
         sf::Color color
     ) const;
 
-    static constexpr sf::FloatRect firstBounds{{115.0F, 185.0F}, {330.0F, 235.0F}};
-    static constexpr sf::FloatRect secondBounds{{515.0F, 185.0F}, {330.0F, 235.0F}};
+    static constexpr sf::FloatRect firstBounds{{245.0F, 180.0F}, {470.0F, 250.0F}};
     static constexpr sf::FloatRect backBounds{{55.0F, 520.0F}, {155.0F, 55.0F}};
 
     ModeSelectCategory category_{ModeSelectCategory::Puzzle};

@@ -58,7 +58,14 @@ void applyWindowSettings(
 
 }  // namespace
 
-int main() {
+int main(const int argc, char* argv[]) {
+    if (argc > 0) {
+        std::error_code pathError;
+        const std::filesystem::path executable = std::filesystem::absolute(argv[0], pathError);
+        if (!pathError && executable.has_parent_path()) {
+            std::filesystem::current_path(executable.parent_path(), pathError);
+        }
+    }
 #ifdef _WIN32
     SetProcessDPIAware();
 #endif

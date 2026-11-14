@@ -131,6 +131,20 @@
 - 自动化测试与持续集成；
 - UML 类图和完整实验报告。
 
+### 4.7 关卡配置与发布打包
+
+四种主要模式的数据位于 `assets/config/levels/*.level`。每份文件独立配置模式名称、说明、初始阳光、波数、可用植物和僵尸刷新安排；修改关卡数值不再需要改 C++ 源码。程序启动后会以可执行文件所在目录作为运行目录，因此发布包不依赖开发电脑上的绝对路径。
+
+Windows Release 发布包可按以下方式生成：
+
+```powershell
+cmake --preset mingw-release
+cmake --build --preset mingw-release
+cmake --install build/release --prefix release/PvZ
+```
+
+交付时需要发送整个 `release/PvZ` 文件夹，不能只发送其中的 `pvz_game.exe`。安装规则会把 `assets`（包括关卡配置、图片、字体、音乐和音效）与程序一起复制；MSVC 运行库和 SFML 使用静态链接，减少老师电脑缺少 DLL 的风险。
+
 ## 五、面向对象设计
 
 ### 5.1 设计原则

@@ -73,8 +73,39 @@ int main() {
 
     GameSession tutorialSession(LevelId::Tutorial);
     passed &= check(
-        tutorialSession.sun() == levelDefinition(LevelId::Tutorial).initialSun,
-        "session uses the selected level initial sun"
+        tutorialSession.tutorialStep() == TutorialStep::CollectSun &&
+            tutorialSession.tutorialStepNumber() == 1,
+        "tutorial starts with the sun collection prompt"
+    );
+    tutorialSession.update(SunSystem::spawnIntervalSeconds);
+    const SunToken tutorialSun = tutorialSession.suns().tokens().front();
+    passed &= check(
+        tutorialSession.collectSunAt(tutorialSun.x + 1.0F, tutorialSun.y + 1.0F) &&
+            tutorialSession.tutorialStep() == TutorialStep::PlantSunflower,
+        "collecting sun advances the tutorial"
+    );
+    passed &= check(
+        tutorialSession.tryPlace(PlantType::Sunflower, {2, 0}) == PlacementResult::Allowed &&
+            tutorialSession.tutorialStep() == TutorialStep::PlantPeashooter,
+        "planting a sunflower advances the tutorial"
+    );
+    passed &= check(
+        tutorialSession.tryPlace(PlantType::Peashooter, {2, 1}) == PlacementResult::Allowed &&
+            tutorialSession.tutorialStep() == TutorialStep::UseShovel,
+        "planting a peashooter advances the tutorial"
+    );
+    passed &= check(
+        tutorialSession.removePlant({2, 0}) &&
+            tutorialSession.tutorialStep() == TutorialStep::Defend &&
+            tutorialSession.tutorialStepNumber() == 5,
+        "using the shovel reaches the defense tutorial step"
+    );
+    passed &= check(
+        tutorialSession.sun() ==
+            levelDefinition(LevelId::Tutorial).initialSun + SunSystem::sunValue -
+                tutorialSession.cards().definition(PlantType::Sunflower).cost -
+                tutorialSession.cards().definition(PlantType::Peashooter).cost,
+        "tutorial actions use the selected level economy"
     );
     passed &= check(
         tutorialSession.tryPlace(PlantType::CherryBomb, {0, 0}) ==

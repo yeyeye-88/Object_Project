@@ -18,12 +18,29 @@
         "CMAKE_C_COMPILER": "gcc",
         "BUILD_TESTING": "ON"
       }
+    },
+    {
+      "name": "mingw-release",
+      "displayName": "MinGW Release",
+      "description": "Portable Windows release build",
+      "generator": "MinGW Makefiles",
+      "binaryDir": "${sourceDir}/build/release",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_CXX_COMPILER": "g++",
+        "CMAKE_C_COMPILER": "gcc",
+        "BUILD_TESTING": "OFF"
+      }
     }
   ],
   "buildPresets": [
     {
       "name": "mingw-debug",
       "configurePreset": "mingw-debug"
+    },
+    {
+      "name": "mingw-release",
+      "configurePreset": "mingw-release"
     }
   ],
   "testPresets": [
@@ -36,4 +53,3 @@
     }
   ]
 }
-

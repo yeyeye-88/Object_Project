@@ -25,9 +25,6 @@ ModeSelectAction ModeSelectScreen::handleEvent(
     if (firstBounds.contains(point)) {
         return ModeSelectAction::FirstMode;
     }
-    if (secondBounds.contains(point)) {
-        return ModeSelectAction::SecondMode;
-    }
     return ModeSelectAction::None;
 }
 
@@ -56,13 +53,9 @@ void ModeSelectScreen::draw(sf::RenderWindow& window) const {
     if (category_ == ModeSelectCategory::Puzzle) {
         drawCard(window, firstBounds, "砸罐子", "敲开罐子，利用其中的植物消灭僵尸。", true,
                  firstBounds.contains(mouse));
-        drawCard(window, secondBounds, "我是僵尸", "控制僵尸吃掉五行脑子。", false,
-                 secondBounds.contains(mouse));
     } else {
         drawCard(window, firstBounds, "坚果保龄球", "滚动坚果，反弹撞倒来袭僵尸。", true,
                  firstBounds.contains(mouse));
-        drawCard(window, secondBounds, "宝石迷阵", "交换植物完成三消，同时抵挡僵尸。", false,
-                 secondBounds.contains(mouse));
     }
 
     sf::RectangleShape back(backBounds.size);
@@ -101,7 +94,7 @@ void ModeSelectScreen::drawCard(
         window,
         available ? "点击开始" : "后续阶段开放",
         22U,
-        bounds.position + sf::Vector2f{95.0F, 178.0F},
+        bounds.position + sf::Vector2f{165.0F, 190.0F},
         available ? sf::Color::White : sf::Color(190, 181, 163)
     );
 }

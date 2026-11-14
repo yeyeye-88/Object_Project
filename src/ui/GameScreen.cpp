@@ -774,6 +774,7 @@ void GameScreen::draw(sf::RenderWindow& window) const {
     drawToolbar(window);
     drawCards(window);
     drawFeedback(window);
+    drawTutorialPrompt(window);
     drawShovelCursor(window);
     if (session_.isPaused()) {
         drawPauseOverlay(window);
@@ -1367,6 +1368,99 @@ void GameScreen::drawFeedback(sf::RenderWindow& window) const {
             text.setFillColor({255, 236, 150, static_cast<std::uint8_t>(255.0F * opacity)});
             window.draw(text);
         }
+    }
+}
+
+void GameScreen::drawTutorialPrompt(sf::RenderWindow& window) const {
+    const TutorialStep step = session_.tutorialStep();
+    if (step == TutorialStep::NotActive || step == TutorialStep::Complete ||
+        !feedbackFontLoaded_ || session_.isPaused() ||
+        session_.state() != GameState::Running) {
+        return;
+    }
+
+    const char* title = "";
+    const char* instruction = "";
+    switch (step) {
+        case TutorialStep::CollectSun:
+            title = "收集阳光";
+            instruction = "点击从天空落下的阳光，获得种植资源。";
+            break;
+        case TutorialStep::PlantSunflower:
+            title = "种植向日葵";
+            instruction = "点击向日葵卡片，再点击草坪中的空格。";
+            break;
+        case TutorialStep::PlantPeashooter:
+            title = "建立火力";
+            instruction = "选择豌豆射手，将它种在向日葵右侧。";
+            break;
+        case TutorialStep::UseShovel:
+            title = "使用铲子";
+            instruction = "点击上方铲子，再点击任意植物将它铲除。";
+            break;
+        case TutorialStep::Defend:
+            title = "完成防守";
+            instruction = "继续种植并消灭全部僵尸，完成教学。";
+            break;
+        case TutorialStep::NotActive:
+        case TutorialStep::Complete:
+            return;
+    }
+
+    const float panelY = waveBannerSeconds_ > 0.0F ? 194.0F : 108.0F;
+    const sf::FloatRect panelBounds{{235.0F, panelY}, {490.0F, 82.0F}};
+    sf::RectangleShape panel(panelBounds.size);
+    panel.setPosition(panelBounds.position);
+    panel.setFillColor({67, 42, 20, 228});
+    panel.setOutlineColor({255, 222, 103});
+    panel.setOutlineThickness(3.0F);
+    window.draw(panel);
+
+    sf::Text heading(
+        feedbackFont_,
+        ui::utf8("教学 " + std::to_string(session_.tutorialStepNumber()) + "/5  " + title),
+        23
+    );
+    heading.setPosition({panelBounds.position.x + 18.0F, panelBounds.position.y + 9.0F});
+    heading.setFillColor({255, 229, 123});
+    window.draw(heading);
+    sf::Text detail(feedbackFont_, ui::utf8(instruction), 17);
+    detail.setPosition({panelBounds.position.x + 18.0F, panelBounds.position.y + 47.0F});
+    detail.setFillColor({246, 239, 211});
+    window.draw(detail);
+
+    sf::FloatRect target{{8.0F, 4.0F}, {66.0F, 90.0F}};
+    bool hasTarget = true;
+    if (step == TutorialStep::CollectSun && !session_.suns().tokens().empty()) {
+        const SunToken& token = session_.suns().tokens().front();
+        target = {{boardToScreenX(token.x), token.y}, {SunSystem::tokenSize, SunSystem::tokenSize}};
+    } else if (step == TutorialStep::PlantSunflower ||
+               step == TutorialStep::PlantPeashooter) {
+        const PlantType wanted = step == TutorialStep::PlantSunflower
+            ? PlantType::Sunflower
+            : PlantType::Peashooter;
+        const auto found = std::find_if(
+            cardLayouts().begin(), cardLayouts().end(),
+            [wanted](const CardLayout& layout) { return layout.type == wanted; }
+        );
+        if (found != cardLayouts().end()) {
+            target = {found->position, cardSize};
+        } else {
+            hasTarget = false;
+        }
+    } else if (step == TutorialStep::UseShovel) {
+        target = shovelBounds;
+    } else {
+        hasTarget = false;
+    }
+    if (hasTarget) {
+        const float pulse = 2.0F + std::sin(animationTime_ * 5.0F) * 1.0F;
+        sf::RectangleShape marker(target.size + sf::Vector2f{8.0F, 8.0F});
+        marker.setPosition(target.position - sf::Vector2f{4.0F, 4.0F});
+        marker.setFillColor(sf::Color::Transparent);
+        marker.setOutlineColor({255, 236, 105, 235});
+        marker.setOutlineThickness(pulse);
+        window.draw(marker);
     }
 }
 

@@ -9,6 +9,9 @@ namespace object_project {
 GameSession::GameSession(const LevelId levelId, const bool persistentEndlessProgress)
     : sun_(levelDefinition(levelId).initialSun), level_(levelId),
       persistentEndlessProgress_(persistentEndlessProgress) {
+    tutorialStep_ = levelId == LevelId::Tutorial
+        ? TutorialStep::CollectSun
+        : TutorialStep::NotActive;
     if (persistentEndlessProgress_) {
         const EndlessSaveData saved = loadEndlessSave();
         highestEndlessWave_ = std::max(1, saved.highestWave);
@@ -57,6 +60,9 @@ void GameSession::update(const float deltaSeconds) {
         }
     } else if (!level_.isEndless() && level_.allSpawned() && !combat_.hasLivingZombies()) {
         state_ = GameState::Won;
+        if (level_.levelId() == LevelId::Tutorial) {
+            tutorialStep_ = TutorialStep::Complete;
+        }
     }
     if (level_.isEndless() && state_ == GameState::Running && persistentEndlessProgress_) {
         endlessSaveTimer_ += deltaSeconds;
@@ -110,11 +116,24 @@ PlacementResult GameSession::tryPlace(
 
     sun_ -= cards_.definition(type).cost;
     cards_.startCooldown(type);
+    if (level_.levelId() == LevelId::Tutorial) {
+        if (tutorialStep_ == TutorialStep::PlantSunflower && type == PlantType::Sunflower) {
+            tutorialStep_ = TutorialStep::PlantPeashooter;
+        } else if (tutorialStep_ == TutorialStep::PlantPeashooter &&
+                   type == PlantType::Peashooter) {
+            tutorialStep_ = TutorialStep::UseShovel;
+        }
+    }
     return PlacementResult::Allowed;
 }
 
 bool GameSession::removePlant(const GridPosition position) {
-    return state_ == GameState::Running && board_.remove(position);
+    const bool removed = state_ == GameState::Running && board_.remove(position);
+    if (removed && level_.levelId() == LevelId::Tutorial &&
+        tutorialStep_ == TutorialStep::UseShovel) {
+        tutorialStep_ = TutorialStep::Defend;
+    }
+    return removed;
 }
 
 bool GameSession::collectSunAt(const float x, const float y) {
@@ -122,6 +141,9 @@ bool GameSession::collectSunAt(const float x, const float y) {
         return false;
     }
     sun_ += SunSystem::sunValue;
+    if (level_.levelId() == LevelId::Tutorial && tutorialStep_ == TutorialStep::CollectSun) {
+        tutorialStep_ = TutorialStep::PlantSunflower;
+    }
     return true;
 }
 
@@ -147,6 +169,28 @@ void GameSession::restart() {
     combat_.reset();
     level_.reset();
     endlessSaveTimer_ = 0.0F;
+    tutorialStep_ = level_.levelId() == LevelId::Tutorial
+        ? TutorialStep::CollectSun
+        : TutorialStep::NotActive;
+}
+
+int GameSession::tutorialStepNumber() const {
+    switch (tutorialStep_) {
+        case TutorialStep::CollectSun:
+            return 1;
+        case TutorialStep::PlantSunflower:
+            return 2;
+        case TutorialStep::PlantPeashooter:
+            return 3;
+        case TutorialStep::UseShovel:
+            return 4;
+        case TutorialStep::Defend:
+        case TutorialStep::Complete:
+            return 5;
+        case TutorialStep::NotActive:
+            return 0;
+    }
+    return 0;
 }
 
 void GameSession::startEndlessFresh() {

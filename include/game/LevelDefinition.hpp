@@ -5,7 +5,7 @@
 #include "game/Zombie.hpp"
 
 #include <cstddef>
-#include <string_view>
+#include <string>
 #include <vector>
 
 namespace object_project {
@@ -30,8 +30,8 @@ struct SpawnEvent {
 struct LevelDefinition {
     LevelId id{LevelId::Garden};
     GameMode mode{GameMode::Standard};
-    std::string_view name;
-    std::string_view description;
+    std::string name;
+    std::string description;
     int initialSun{150};
     int waveCount{1};
     std::vector<PlantType> availablePlants;

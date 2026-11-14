@@ -1,5 +1,7 @@
 #include "game/LevelDefinition.hpp"
+#include "game/LevelLoader.hpp"
 
+#include <filesystem>
 #include <iostream>
 
 namespace {
@@ -14,6 +16,12 @@ bool check(const bool condition, const char* name) {
 int main() {
     using namespace object_project;
     bool passed = true;
+
+    const auto externalDefinitions = loadLevelDefinitions("assets/config/levels");
+    passed &= check(
+        externalDefinitions[static_cast<std::size_t>(LevelId::Garden)].schedule.size() == 15,
+        "external level files load the complete garden schedule"
+    );
 
     const LevelDefinition& tutorial = levelDefinition(LevelId::Tutorial);
     const LevelDefinition& garden = levelDefinition(LevelId::Garden);

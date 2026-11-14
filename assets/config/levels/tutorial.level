@@ -1,0 +1,13 @@
+# 新手教学：按“时间,行号,僵尸类型,波次”生成僵尸。
+id=tutorial
+mode=standard
+name=阳光初战
+description=跟随提示学习阳光、种植、铲除与基础防守。
+initial_sun=200
+wave_count=2
+plants=sunflower,peashooter,wallnut
+spawn=24.0,2,normal,1
+spawn=32.0,1,normal,1
+spawn=48.0,3,normal,2
+spawn=56.0,2,conehead,2
+spawn=64.0,4,normal,2

@@ -1,0 +1,7 @@
+id=endless_defense
+mode=endless
+name=无尽防守
+description=尽可能守住更多波次，并保留最高波次和完整战局。
+initial_sun=200
+wave_count=0
+plants=sunflower,peashooter,wallnut,repeater,threepeater,snowpea,tallnut,potato_mine,cherry_bomb,torchwood

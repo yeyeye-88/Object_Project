@@ -7,6 +7,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
+set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
 include(FetchContent)
 
@@ -38,6 +39,7 @@ add_library(object_project_core
     src/game/EndlessSave.cpp
     src/game/GameSession.cpp
     src/game/LevelDefinition.cpp
+    src/game/LevelLoader.cpp
     src/game/LevelSystem.cpp
     src/game/Plant.cpp
     src/game/SunSystem.cpp
@@ -62,8 +64,12 @@ add_executable(pvz_game
 )
 target_link_libraries(pvz_game PRIVATE object_project_core SFML::Graphics SFML::Audio)
 
+if(MINGW)
+    target_link_options(pvz_game PRIVATE -static -static-libgcc -static-libstdc++)
+endif()
+
 if(MSVC)
-    target_compile_options(object_project_core PRIVATE /W4 /permissive-)
+    target_compile_options(object_project_core PRIVATE /W4 /permissive- /utf-8)
     target_compile_options(pvz_game PRIVATE /W4 /permissive- /utf-8)
 else()
     target_compile_options(object_project_core PRIVATE -Wall -Wextra -Wpedantic)
@@ -124,6 +130,16 @@ if(BUILD_TESTING)
             target_compile_options(${test_target} PRIVATE -Wall -Wextra -Wpedantic)
         endif()
         add_test(NAME ${test_target} COMMAND ${test_target})
+        set_tests_properties(${test_target} PROPERTIES WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
     endforeach()
     add_test(NAME visual_asset_tests COMMAND visual_asset_tests)
+    set_tests_properties(visual_asset_tests PROPERTIES WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
 endif()
+
+install(TARGETS pvz_game RUNTIME DESTINATION .)
+install(DIRECTORY "${CMAKE_SOURCE_DIR}/assets" DESTINATION .)
+
+set(CPACK_GENERATOR ZIP)
+set(CPACK_PACKAGE_NAME "ObjectProject-PvZ")
+set(CPACK_PACKAGE_VERSION "${PROJECT_VERSION}")
+include(CPack)
